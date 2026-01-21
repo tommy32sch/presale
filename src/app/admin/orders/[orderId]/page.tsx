@@ -330,9 +330,11 @@ export default function AdminOrderDetailPage() {
                   <div className="flex items-center gap-2">
                     <Select
                       value={currentStatus}
-                      onValueChange={(value) =>
-                        handleUpdateProgress(stage.id, value as StageStatus, false)
-                      }
+                      onValueChange={(value) => {
+                        if (value !== currentStatus) {
+                          handleUpdateProgress(stage.id, value as StageStatus, false);
+                        }
+                      }}
                       disabled={currentStatus === 'completed'}
                     >
                       <SelectTrigger className="w-[140px]">
