@@ -18,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { OrderWithProgress, Stage, StageStatus } from '@/types';
 import { format } from 'date-fns';
@@ -32,6 +40,7 @@ import {
   CheckCircle,
   Clock,
   Circle,
+  Trash2,
 } from 'lucide-react';
 
 const carriers = [
@@ -53,6 +62,8 @@ export default function AdminOrderDetailPage() {
   const [carrier, setCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isDelayed, setIsDelayed] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,6 +117,27 @@ export default function AdminOrderDetailPage() {
       toast.error('Failed to update order');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${params.orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        toast.success('Order deleted');
+        router.push('/admin/orders');
+      } else {
+        toast.error('Failed to delete order');
+      }
+    } catch {
+      toast.error('Failed to delete order');
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -204,14 +236,23 @@ export default function AdminOrderDetailPage() {
             </p>
           </div>
         </div>
-        <Button onClick={handleSaveOrder} disabled={saving}>
-          {saving ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
-          Save Changes
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSaveOrder} disabled={saving}>
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            Save Changes
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -369,6 +410,42 @@ export default function AdminOrderDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Order</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete order <strong>{order.order_number}</strong>?
+              This will permanently remove the order and all associated data (progress, photos, notifications).
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteOrder}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Yes, Delete Order
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

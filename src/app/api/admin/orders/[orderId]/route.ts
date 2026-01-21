@@ -121,3 +121,40 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ orderId: string }> }
+) {
+  const auth = await requireAdmin(request);
+  if (!auth.authenticated) {
+    return auth.response;
+  }
+
+  try {
+    const { orderId } = await params;
+    const supabase = db();
+
+    // Delete order (cascades to order_progress, order_photos, notification_preferences, etc.)
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Order delete error:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete order' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Order delete error:', error);
+    return NextResponse.json(
+      { success: false, error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}
