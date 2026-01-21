@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { photo_ids, order_ids } = body;
+    const { photo_ids, order_ids, stage_id } = body;
 
     if (!photo_ids?.length || !order_ids?.length) {
       return NextResponse.json(
@@ -19,7 +19,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!stage_id) {
+      return NextResponse.json(
+        { success: false, error: 'Stage ID is required' },
+        { status: 400 }
+      );
+    }
+
     const supabase = db();
+
+    // Update photos with stage_id
+    const { error: updateError } = await supabase
+      .from('photos')
+      .update({ stage_id })
+      .in('id', photo_ids);
+
+    if (updateError) {
+      console.error('Photo stage update error:', updateError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to update photo stage' },
+        { status: 500 }
+      );
+    }
 
     // Create junction records for each photo-order pair
     const records = [];

@@ -59,6 +59,7 @@ export default function PhotosPage() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<string>('');
 
   const fetchPhotos = useCallback(async () => {
     try {
@@ -203,6 +204,11 @@ export default function PhotosPage() {
       return;
     }
 
+    if (!selectedStage) {
+      toast.error('Please select a stage for these photos');
+      return;
+    }
+
     setAssigning(true);
     try {
       const res = await fetch('/api/admin/photos/assign', {
@@ -211,6 +217,7 @@ export default function PhotosPage() {
         body: JSON.stringify({
           photo_ids: Array.from(selectedPhotos),
           order_ids: Array.from(selectedOrders),
+          stage_id: parseInt(selectedStage),
         }),
       });
 
@@ -221,6 +228,7 @@ export default function PhotosPage() {
         setShowAssignDialog(false);
         setSelectedPhotos(new Set());
         setSelectedOrders(new Set());
+        setSelectedStage('');
         fetchPhotos();
       } else {
         toast.error(data.error || 'Failed to assign photos');
@@ -397,9 +405,25 @@ export default function PhotosPage() {
           <DialogHeader>
             <DialogTitle>Assign Photos to Orders</DialogTitle>
             <DialogDescription>
-              Select orders to assign the {selectedPhotos.size} selected photo(s) to.
+              Select a stage and orders to assign the {selectedPhotos.size} selected photo(s) to.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="mb-4">
+            <label className="text-sm font-medium mb-2 block">Which stage are these photos from?</label>
+            <Select value={selectedStage} onValueChange={setSelectedStage}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a stage" />
+              </SelectTrigger>
+              <SelectContent>
+                {stages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id.toString()}>
+                    {stage.display_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {orders.map((order) => (
