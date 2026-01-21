@@ -40,14 +40,17 @@ export async function GET(
       );
     }
 
-    // Transform photos
+    // Transform data to match frontend expectations
     const photos = order.order_photos?.map((op: { photo: object }) => op.photo) || [];
+    const progress = order.order_progress || [];
 
     return NextResponse.json({
       success: true,
       order: {
         ...order,
+        progress,
         photos,
+        order_progress: undefined,
         order_photos: undefined,
       },
     });
