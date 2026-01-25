@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   ShoppingCart,
   Package,
@@ -14,6 +16,10 @@ import {
   MessageSquare,
   Upload,
   ArrowRight,
+  Store,
+  RefreshCw,
+  Loader2,
+  Check,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -26,8 +32,22 @@ interface DashboardStats {
 }
 
 export default function AdminDashboardPage() {
+  const searchParams = useSearchParams();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shopifyConnected, setShopifyConnected] = useState(false);
+  const [shopifyLoading, setShopifyLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    // Check for Shopify connection status in URL
+    const shopifyStatus = searchParams.get('shopify');
+    if (shopifyStatus === 'connected') {
+      toast.success('Shopify connected successfully!');
+    } else if (searchParams.get('error')) {
+      toast.error('Failed to connect Shopify: ' + searchParams.get('error'));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -39,7 +59,48 @@ export default function AdminDashboardPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Check Shopify connection
+    fetch('/api/admin/shopify/sync')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setShopifyConnected(data.connected);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setShopifyLoading(false));
   }, []);
+
+  const handleShopifyConnect = () => {
+    window.location.href = '/api/admin/shopify/auth';
+  };
+
+  const handleShopifySync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/shopify/sync', {
+        method: 'POST',
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`Synced ${data.imported} orders (${data.skipped} skipped)`);
+        // Refresh stats
+        const statsRes = await fetch('/api/admin/stats');
+        const statsData = await statsRes.json();
+        if (statsData.success) {
+          setStats(statsData.stats);
+        }
+      } else {
+        toast.error(data.error || 'Sync failed');
+      }
+    } catch {
+      toast.error('Sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -203,6 +264,54 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Shopify Integration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Store className="h-5 w-5" />
+            Shopify Integration
+          </CardTitle>
+          <CardDescription>
+            Sync orders automatically from your Shopify store
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {shopifyLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : shopifyConnected ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-green-600">
+                <Check className="h-4 w-4" />
+                <span className="text-sm font-medium">Connected to Shopify</span>
+              </div>
+              <Button onClick={handleShopifySync} disabled={syncing} className="w-full">
+                {syncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync Orders from Shopify
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Connect your Shopify store to automatically import orders.
+              </p>
+              <Button onClick={handleShopifyConnect} className="w-full">
+                <Store className="mr-2 h-4 w-4" />
+                Connect Shopify
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
