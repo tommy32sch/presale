@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -22,8 +23,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { OrderWithProgress } from '@/types';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import {
   Search,
   Upload,
@@ -31,6 +41,8 @@ import {
   ChevronRight,
   AlertTriangle,
   Eye,
+  Plus,
+  Loader2,
 } from 'lucide-react';
 
 interface OrdersResponse {
@@ -50,6 +62,18 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+
+  // Add order dialog state
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newOrder, setNewOrder] = useState({
+    order_number: '',
+    customer_name: '',
+    customer_email: '',
+    customer_phone: '',
+    items_description: '',
+    quantity: '1',
+  });
 
   const page = parseInt(searchParams.get('page') || '1');
 
@@ -106,6 +130,48 @@ export default function AdminOrdersPage() {
     return 'Pending';
   };
 
+  const handleAddOrder = async () => {
+    // Validate required fields
+    if (!newOrder.order_number || !newOrder.customer_name || !newOrder.customer_email || !newOrder.customer_phone || !newOrder.items_description) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newOrder,
+          quantity: parseInt(newOrder.quantity) || 1,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('Order created successfully');
+        setShowAddDialog(false);
+        setNewOrder({
+          order_number: '',
+          customer_name: '',
+          customer_email: '',
+          customer_phone: '',
+          items_description: '',
+          quantity: '1',
+        });
+        fetchOrders();
+      } else {
+        toast.error(data.error || 'Failed to create order');
+      }
+    } catch {
+      toast.error('Failed to create order');
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -115,12 +181,18 @@ export default function AdminOrdersPage() {
             Manage and track all customer orders
           </p>
         </div>
-        <Link href="/admin/orders/upload">
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload CSV
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Order
           </Button>
-        </Link>
+          <Link href="/admin/orders/upload">
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload CSV
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -247,6 +319,94 @@ export default function AdminOrdersPage() {
           )}
         </>
       )}
+
+      {/* Add Order Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Order</DialogTitle>
+            <DialogDescription>
+              Manually create a new order. All fields are required.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="order_number">Order Number</Label>
+              <Input
+                id="order_number"
+                placeholder="#1001"
+                value={newOrder.order_number}
+                onChange={(e) => setNewOrder({ ...newOrder, order_number: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer_name">Customer Name</Label>
+              <Input
+                id="customer_name"
+                placeholder="John Smith"
+                value={newOrder.customer_name}
+                onChange={(e) => setNewOrder({ ...newOrder, customer_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer_email">Customer Email</Label>
+              <Input
+                id="customer_email"
+                type="email"
+                placeholder="john@example.com"
+                value={newOrder.customer_email}
+                onChange={(e) => setNewOrder({ ...newOrder, customer_email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer_phone">Customer Phone</Label>
+              <Input
+                id="customer_phone"
+                placeholder="(555) 123-4567"
+                value={newOrder.customer_phone}
+                onChange={(e) => setNewOrder({ ...newOrder, customer_phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="items_description">Items Description</Label>
+              <Input
+                id="items_description"
+                placeholder="Blue Jacket (M), Red T-Shirt (L)"
+                value={newOrder.items_description}
+                onChange={(e) => setNewOrder({ ...newOrder, items_description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={newOrder.quantity}
+                onChange={(e) => setNewOrder({ ...newOrder, quantity: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddOrder} disabled={adding}>
+              {adding ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Order
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

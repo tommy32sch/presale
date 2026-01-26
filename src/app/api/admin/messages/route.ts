@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
+// TODO: Future feature - email customer when admin replies
+// import { sendEmail } from '@/lib/notifications/email';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
@@ -119,6 +121,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // TODO: Future feature - email customer when admin replies
+    // Uncomment and configure Resend to enable this feature
 
     return NextResponse.json({
       success: true,

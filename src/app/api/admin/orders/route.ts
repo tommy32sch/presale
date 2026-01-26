@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
+import { normalizePhone } from '@/lib/utils/phone';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
@@ -64,6 +65,102 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Orders fetch error:', error);
+    return NextResponse.json(
+      { success: false, error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.authenticated) {
+    return auth.response;
+  }
+
+  try {
+    const body = await request.json();
+    const {
+      order_number,
+      customer_name,
+      customer_email,
+      customer_phone,
+      items_description,
+      quantity = 1,
+    } = body;
+
+    // Validate required fields
+    if (!order_number || !customer_name || !customer_email || !customer_phone || !items_description) {
+      return NextResponse.json(
+        { success: false, error: 'All fields are required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = db();
+
+    // Check if order number already exists
+    const { data: existing } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('order_number', order_number)
+      .single();
+
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: 'Order number already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Normalize phone number
+    const normalizedPhone = normalizePhone(customer_phone);
+
+    // Create order
+    const { data: order, error } = await supabase
+      .from('orders')
+      .insert({
+        order_number,
+        customer_name,
+        customer_email,
+        customer_phone,
+        customer_phone_normalized: normalizedPhone,
+        items_description,
+        quantity,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Order creation error:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create order' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize progress for all stages
+    const { data: stages } = await supabase
+      .from('stages')
+      .select('id')
+      .order('sort_order');
+
+    if (stages && stages.length > 0) {
+      const progressRecords = stages.map((stage) => ({
+        order_id: order.id,
+        stage_id: stage.id,
+        status: 'not_started',
+      }));
+
+      await supabase.from('order_progress').insert(progressRecords);
+    }
+
+    return NextResponse.json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.error('Order creation error:', error);
     return NextResponse.json(
       { success: false, error: 'An unexpected error occurred' },
       { status: 500 }

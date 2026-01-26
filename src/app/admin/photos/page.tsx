@@ -425,6 +425,26 @@ export default function PhotosPage() {
             </Select>
           </div>
 
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium">Select orders:</label>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedOrders(new Set(orders.map((o) => o.id)))}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedOrders(new Set())}
+              >
+                Deselect All
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {orders.map((order) => (
               <div

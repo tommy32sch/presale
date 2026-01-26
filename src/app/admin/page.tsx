@@ -20,7 +20,9 @@ import {
   RefreshCw,
   Loader2,
   Check,
+  Key,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface DashboardStats {
   totalOrders: number;
@@ -38,6 +40,9 @@ export default function AdminDashboardPage() {
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifyLoading, setShopifyLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [showManualToken, setShowManualToken] = useState(false);
+  const [manualToken, setManualToken] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
 
   useEffect(() => {
     // Check for Shopify connection status in URL
@@ -74,6 +79,34 @@ export default function AdminDashboardPage() {
 
   const handleShopifyConnect = () => {
     window.location.href = '/api/admin/shopify/auth';
+  };
+
+  const handleSaveManualToken = async () => {
+    if (!manualToken.trim()) {
+      toast.error('Please enter an access token');
+      return;
+    }
+    setSavingToken(true);
+    try {
+      const res = await fetch('/api/admin/shopify/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: manualToken.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Shopify connected successfully!');
+        setShopifyConnected(true);
+        setShowManualToken(false);
+        setManualToken('');
+      } else {
+        toast.error(data.error || 'Failed to save token');
+      }
+    } catch {
+      toast.error('Failed to save token');
+    } finally {
+      setSavingToken(false);
+    }
   };
 
   const handleShopifySync = async () => {
@@ -304,10 +337,46 @@ export default function AdminDashboardPage() {
               <p className="text-sm text-muted-foreground">
                 Connect your Shopify store to automatically import orders.
               </p>
-              <Button onClick={handleShopifyConnect} className="w-full">
-                <Store className="mr-2 h-4 w-4" />
-                Connect Shopify
-              </Button>
+              {showManualToken ? (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Access Token</label>
+                    <Input
+                      type="password"
+                      placeholder="shpat_xxxxx..."
+                      value={manualToken}
+                      onChange={(e) => setManualToken(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Get this from Shopify CLI: run `shopify app dev` in your terminal
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveManualToken} disabled={savingToken} className="flex-1">
+                      {savingToken ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Key className="mr-2 h-4 w-4" />
+                      )}
+                      Save Token
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowManualToken(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Button onClick={handleShopifyConnect} className="w-full">
+                    <Store className="mr-2 h-4 w-4" />
+                    Connect Shopify
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowManualToken(true)} className="w-full">
+                    <Key className="mr-2 h-4 w-4" />
+                    Enter Access Token Manually
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

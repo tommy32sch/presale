@@ -41,6 +41,7 @@ import {
   Clock,
   Circle,
   Trash2,
+  Calendar,
 } from 'lucide-react';
 
 const carriers = [
@@ -144,7 +145,8 @@ export default function AdminOrderDetailPage() {
   const handleUpdateProgress = async (
     stageId: number,
     status: StageStatus,
-    queueNotification: boolean = false
+    queueNotification: boolean = false,
+    estimatedEndDate?: string
   ) => {
     try {
       const res = await fetch(`/api/admin/orders/${params.orderId}/progress`, {
@@ -154,6 +156,7 @@ export default function AdminOrderDetailPage() {
           stage_id: stageId,
           status,
           queue_notification: queueNotification,
+          estimated_end_date: estimatedEndDate || null,
         }),
       });
 
@@ -171,6 +174,13 @@ export default function AdminOrderDetailPage() {
     } catch {
       toast.error('Failed to update progress');
     }
+  };
+
+  const handleUpdateProjectedDate = async (stageId: number, date: string) => {
+    const progress = getProgressForStage(stageId);
+    if (!progress) return;
+
+    await handleUpdateProgress(stageId, progress.status, false, date);
   };
 
   const getProgressForStage = (stageId: number) => {
@@ -352,58 +362,82 @@ export default function AdminOrderDetailPage() {
               return (
                 <div
                   key={stage.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="p-4 border rounded-lg space-y-3"
                 >
-                  <div className="flex items-center gap-4">
-                    {getStatusIcon(currentStatus)}
-                    <div>
-                      <p className="font-medium">{stage.display_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {stage.description}
-                      </p>
-                      {progress?.completed_at && (
-                        <p className="text-xs text-green-600">
-                          Completed: {format(new Date(progress.completed_at), 'PPp')}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {getStatusIcon(currentStatus)}
+                      <div>
+                        <p className="font-medium">{stage.display_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {stage.description}
                         </p>
+                        {progress?.started_at && (
+                          <p className="text-xs text-blue-600">
+                            Started: {format(new Date(progress.started_at), 'PPp')}
+                          </p>
+                        )}
+                        {progress?.completed_at && (
+                          <p className="text-xs text-green-600">
+                            Completed: {format(new Date(progress.completed_at), 'PPp')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={currentStatus}
+                        onValueChange={(value) => {
+                          if (value !== currentStatus) {
+                            handleUpdateProgress(stage.id, value as StageStatus, false);
+                          }
+                        }}
+                        disabled={currentStatus === 'completed'}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="not_started">Not Started</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {currentStatus !== 'completed' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleUpdateProgress(
+                              stage.id,
+                              currentStatus === 'not_started' ? 'in_progress' : 'completed',
+                              true
+                            )
+                          }
+                        >
+                          <Bell className="h-4 w-4 mr-1" />
+                          Update & Notify
+                        </Button>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={currentStatus}
-                      onValueChange={(value) => {
-                        if (value !== currentStatus) {
-                          handleUpdateProgress(stage.id, value as StageStatus, false);
-                        }
-                      }}
-                      disabled={currentStatus === 'completed'}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="not_started">Not Started</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {currentStatus !== 'completed' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          handleUpdateProgress(
-                            stage.id,
-                            currentStatus === 'not_started' ? 'in_progress' : 'completed',
-                            true
-                          )
-                        }
-                      >
-                        <Bell className="h-4 w-4 mr-1" />
-                        Update & Notify
-                      </Button>
-                    )}
-                  </div>
+
+                  {/* Projected completion date - only show for in_progress stages */}
+                  {currentStatus === 'in_progress' && (
+                    <div className="flex items-center gap-3 pl-14">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <Label htmlFor={`projected-${stage.id}`} className="text-sm whitespace-nowrap">
+                        Projected completion:
+                      </Label>
+                      <Input
+                        id={`projected-${stage.id}`}
+                        type="date"
+                        className="w-auto"
+                        value={progress?.estimated_end_date?.split('T')[0] || ''}
+                        onChange={(e) => handleUpdateProjectedDate(stage.id, e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}

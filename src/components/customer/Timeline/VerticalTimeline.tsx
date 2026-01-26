@@ -189,10 +189,24 @@ export function VerticalTimeline({ progress, photos = [], lastUpdated }: Vertica
 
                   <div className="flex items-center gap-2 mt-1">
                     {getStatusBadge(item.status)}
+                  </div>
+
+                  {/* Date started / completed / projected */}
+                  <div className="mt-2 text-xs space-y-0.5">
+                    {item.started_at && (
+                      <p className="text-muted-foreground">
+                        Started: {format(new Date(item.started_at), 'MMM d, yyyy')}
+                      </p>
+                    )}
                     {item.completed_at && (
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(item.completed_at), 'MMM d, yyyy')}
-                      </span>
+                      <p className="text-muted-foreground">
+                        Completed: {format(new Date(item.completed_at), 'MMM d, yyyy')}
+                      </p>
+                    )}
+                    {isInProgress && item.estimated_end_date && (
+                      <p className="text-blue-600 dark:text-blue-400 font-medium">
+                        Projected completion: {format(new Date(item.estimated_end_date), 'MMM d, yyyy')}
+                      </p>
                     )}
                   </div>
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { OrderWithProgress } from '@/types';
+import { OrderWithProgress, Message } from '@/types';
 import { VerticalTimeline, HorizontalTimeline } from '@/components/customer/Timeline';
 import { NotificationOptIn } from '@/components/customer/NotificationOptIn';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Package,
   ArrowLeft,
@@ -18,6 +29,9 @@ import {
   ExternalLink,
   AlertTriangle,
   MessageCircle,
+  Loader2,
+  Send,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function TrackOrderPage() {
@@ -26,6 +40,11 @@ export default function TrackOrderPage() {
   const [order, setOrder] = useState<OrderWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOptIn, setShowOptIn] = useState(false);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [message, setMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
   useEffect(() => {
     // Try to get order from sessionStorage first
@@ -46,6 +65,28 @@ export default function TrackOrderPage() {
     // If not in sessionStorage, redirect to lookup
     router.push('/');
   }, [params.orderId, router]);
+
+  // Fetch messages for this order
+  const fetchMessages = async (orderId: string) => {
+    setLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages`);
+      const data = await res.json();
+      if (data.success) {
+        setMessages(data.messages);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    if (order?.id) {
+      fetchMessages(order.id);
+    }
+  }, [order?.id]);
 
   if (loading) {
     return (
@@ -105,6 +146,38 @@ export default function TrackOrderPage() {
 
   const trackingUrl = getTrackingUrl();
   const currentStage = order.progress.find((p) => p.status === 'in_progress');
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: message.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success('Message sent! We\'ll get back to you soon.');
+        setMessage('');
+        setShowMessageDialog(false);
+        // Refresh messages to show the new one
+        fetchMessages(order.id);
+      } else {
+        toast.error(data.error || 'Failed to send message');
+      }
+    } catch {
+      toast.error('Failed to send message');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
   const lastCompletedStage = [...order.progress]
     .reverse()
     .find((p) => p.status === 'completed');
@@ -251,20 +324,114 @@ export default function TrackOrderPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              Need Help?
+              {messages.length > 0 ? 'Messages' : 'Need Help?'}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Have a question about your order? Send us a message and we&apos;ll get back to you.
-            </p>
-            <Button variant="outline" className="w-full">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Send Message
-            </Button>
+            {messages.length > 0 ? (
+              <div className="space-y-4">
+                {/* Conversation history */}
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.direction === 'outbound' ? 'justify-start' : 'justify-end'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] p-3 rounded-lg ${
+                          msg.direction === 'outbound'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            msg.direction === 'outbound'
+                              ? 'text-primary-foreground/70'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {msg.direction === 'outbound' ? 'Support' : 'You'} •{' '}
+                          {formatDistanceToNow(new Date(msg.created_at))} ago
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Separator />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchMessages(order.id)}
+                    disabled={loadingMessages}
+                  >
+                    {loadingMessages ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button className="flex-1" onClick={() => setShowMessageDialog(true)}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Message
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Have a question about your order? Send us a message and we&apos;ll get back to you.
+                </p>
+                <Button variant="outline" className="w-full" onClick={() => setShowMessageDialog(true)}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Send Message
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </main>
+
+      {/* Message Dialog */}
+      <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send a Message</DialogTitle>
+            <DialogDescription>
+              Have a question about order {order.order_number}? We&apos;ll respond as soon as possible.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Type your message here..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMessageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage} disabled={sendingMessage || !message.trim()}>
+              {sendingMessage ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Message
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Notification opt-in modal */}
       {showOptIn && (

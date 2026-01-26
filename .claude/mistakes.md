@@ -111,3 +111,18 @@ Reference this file before making changes to avoid repeating past mistakes.
 - Direct links to tracking page redirect (security feature)
 - Drag-and-drop UI text but click-only implemented
 - Default admin credentials (user should change)
+
+---
+
+## Future Features
+
+### Email Notifications for Admin Replies
+- **Status:** Code scaffolded, disabled
+- **Location:** `/src/app/api/admin/messages/route.ts`
+- **To enable:** Uncomment email code, add `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to env vars
+- **What it does:** Emails customer automatically when admin replies to their message
+
+### SMS Notifications
+- **Status:** Twilio integration scaffolded
+- **Location:** `/src/lib/notifications/sms.ts`
+- **To enable:** Add Twilio credentials to env vars
