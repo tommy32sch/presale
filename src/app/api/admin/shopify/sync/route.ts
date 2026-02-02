@@ -32,18 +32,25 @@ export async function POST(request: NextRequest) {
     const supabase = db();
     const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
 
-    // Get stored access token
-    const { data: connection, error: connError } = await supabase
-      .from('shopify_connection')
-      .select('access_token')
-      .eq('id', 'default')
-      .single();
+    // Get access token from env or database
+    let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
 
-    if (connError || !connection?.access_token) {
-      return NextResponse.json(
-        { success: false, error: 'Shopify not connected. Please connect your store first.' },
-        { status: 400 }
-      );
+    if (!accessToken) {
+      // Fallback to database if env variable not set
+      const { data: connection, error: connError } = await supabase
+        .from('shopify_connection')
+        .select('access_token')
+        .eq('id', 'default')
+        .single();
+
+      if (connError || !connection?.access_token) {
+        return NextResponse.json(
+          { success: false, error: 'Shopify not connected. Please connect your store first.' },
+          { status: 400 }
+        );
+      }
+
+      accessToken = connection.access_token;
     }
 
     // Fetch orders from Shopify
@@ -51,7 +58,7 @@ export async function POST(request: NextRequest) {
       `https://${storeDomain}/admin/api/2024-01/orders.json?status=any&limit=250`,
       {
         headers: {
-          'X-Shopify-Access-Token': connection.access_token,
+          'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json',
         },
       }
@@ -176,6 +183,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+
+    // Check env variables first
+    if (storeDomain && accessToken) {
+      return NextResponse.json({
+        success: true,
+        connected: true,
+        store_domain: storeDomain,
+        connected_at: null,
+      });
+    }
+
+    // Fallback to database
     const supabase = db();
 
     const { data: connection, error } = await supabase

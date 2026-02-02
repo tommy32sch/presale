@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
+import { setupShopifyWebhooks } from '@/lib/shopify/webhooks';
 
 // Save manually entered access token
 export async function POST(request: NextRequest) {
@@ -63,6 +64,24 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Failed to save token' },
         { status: 500 }
       );
+    }
+
+    // Setup webhooks for automatic order syncing
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (appUrl) {
+      const webhookResult = await setupShopifyWebhooks(
+        storeDomain,
+        accessToken,
+        appUrl
+      );
+
+      if (!webhookResult.success) {
+        console.error('Failed to setup webhooks:', webhookResult.error);
+        // Don't fail the connection, but log the error
+        // Webhooks can be setup manually later
+      }
+    } else {
+      console.warn('NEXT_PUBLIC_APP_URL not set, skipping webhook setup');
     }
 
     return NextResponse.json({ success: true });
