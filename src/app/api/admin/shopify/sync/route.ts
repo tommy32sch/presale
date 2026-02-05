@@ -15,6 +15,12 @@ interface ShopifyOrder {
     email: string;
     phone: string;
   };
+  shipping_address?: {
+    phone?: string;
+  };
+  billing_address?: {
+    phone?: string;
+  };
   line_items: Array<{
     title: string;
     quantity: number;
@@ -32,25 +38,38 @@ export async function POST(request: NextRequest) {
     const supabase = db();
     const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
 
-    // Get access token from env or database
-    let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    // Get access token - prefer database (refreshed daily) over env variable (static)
+    let accessToken: string | null = null;
+
+    // First try database (contains refreshed tokens from cron job)
+    const { data: connection } = await supabase
+      .from('shopify_connection')
+      .select('access_token, expires_at')
+      .eq('id', 'default')
+      .single();
+
+    if (connection?.access_token) {
+      // Check if token is expired
+      const expiresAt = connection.expires_at ? new Date(connection.expires_at) : null;
+      const isExpired = expiresAt && expiresAt < new Date();
+
+      if (!isExpired) {
+        accessToken = connection.access_token;
+      } else {
+        console.log('Database token expired, will try env variable');
+      }
+    }
+
+    // Fallback to env variable if no valid database token
+    if (!accessToken) {
+      accessToken = process.env.SHOPIFY_ACCESS_TOKEN || null;
+    }
 
     if (!accessToken) {
-      // Fallback to database if env variable not set
-      const { data: connection, error: connError } = await supabase
-        .from('shopify_connection')
-        .select('access_token')
-        .eq('id', 'default')
-        .single();
-
-      if (connError || !connection?.access_token) {
-        return NextResponse.json(
-          { success: false, error: 'Shopify not connected. Please connect your store first.' },
-          { status: 400 }
-        );
-      }
-
-      accessToken = connection.access_token;
+      return NextResponse.json(
+        { success: false, error: 'Shopify not connected. Please connect your store first.' },
+        { status: 400 }
+      );
     }
 
     // Fetch orders from Shopify
@@ -58,7 +77,7 @@ export async function POST(request: NextRequest) {
       `https://${storeDomain}/admin/api/2024-01/orders.json?status=any&limit=250`,
       {
         headers: {
-          'X-Shopify-Access-Token': accessToken,
+          'X-Shopify-Access-Token': accessToken!,
           'Content-Type': 'application/json',
         },
       }
@@ -107,7 +126,12 @@ export async function POST(request: NextRequest) {
         ? `${shopifyOrder.customer.first_name || ''} ${shopifyOrder.customer.last_name || ''}`.trim()
         : 'Unknown Customer';
       const customerEmail = shopifyOrder.customer?.email || shopifyOrder.email || '';
-      const customerPhone = shopifyOrder.customer?.phone || shopifyOrder.phone || '';
+      const customerPhone =
+        shopifyOrder.customer?.phone ||
+        shopifyOrder.phone ||
+        shopifyOrder.shipping_address?.phone ||
+        shopifyOrder.billing_address?.phone ||
+        '';
 
       // Skip if no phone (required for lookup)
       if (!customerPhone) {
