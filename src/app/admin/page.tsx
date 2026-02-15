@@ -21,8 +21,13 @@ import {
   Loader2,
   Check,
   Key,
+  Clock,
+  CheckCircle,
+  ShoppingBag,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { ActivityEvent } from '@/types';
+import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardStats {
   totalOrders: number;
@@ -43,6 +48,8 @@ export default function AdminDashboardPage() {
   const [showManualToken, setShowManualToken] = useState(false);
   const [manualToken, setManualToken] = useState('');
   const [savingToken, setSavingToken] = useState(false);
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
 
   useEffect(() => {
     // Check for Shopify connection status in URL
@@ -64,6 +71,17 @@ export default function AdminDashboardPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Fetch recent activity
+    fetch('/api/admin/activity')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setActivities(data.activities);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setActivitiesLoading(false));
 
     // Check Shopify connection
     fetch('/api/admin/shopify/sync')
@@ -165,61 +183,69 @@ export default function AdminDashboardPage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalOrders ?? 0}</div>
-            <p className="text-xs text-muted-foreground">
-              All orders in the system
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/orders" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-primary/20 cursor-pointer border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats?.totalOrders ?? 0}</div>
+              <p className="text-xs text-muted-foreground">
+                All orders in the system
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeOrders ?? 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently in production
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/orders?status=active" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-primary/20 cursor-pointer border-l-4 border-l-status-info">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
+              <Package className="h-4 w-4 text-status-info" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats?.activeOrders ?? 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Currently in production
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className={stats?.delayedOrders ? 'border-destructive' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Delayed Orders</CardTitle>
-            <AlertTriangle className={`h-4 w-4 ${stats?.delayedOrders ? 'text-destructive' : 'text-muted-foreground'}`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${stats?.delayedOrders ? 'text-destructive' : ''}`}>
-              {stats?.delayedOrders ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Require attention
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/orders?status=delayed" className="block">
+          <Card className={`transition-all hover:shadow-md cursor-pointer border-l-4 border-l-destructive ${stats?.delayedOrders ? 'border-destructive hover:border-destructive/80' : 'hover:border-primary/20'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Delayed Orders</CardTitle>
+              <AlertTriangle className={`h-4 w-4 ${stats?.delayedOrders ? 'text-destructive' : 'text-muted-foreground'}`} />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-3xl font-bold ${stats?.delayedOrders ? 'text-destructive' : ''}`}>
+                {stats?.delayedOrders ?? 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Require attention
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className={stats?.pendingNotifications ? 'border-yellow-500' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pending Notifications</CardTitle>
-            <Bell className={`h-4 w-4 ${stats?.pendingNotifications ? 'text-yellow-500' : 'text-muted-foreground'}`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${stats?.pendingNotifications ? 'text-yellow-500' : ''}`}>
-              {stats?.pendingNotifications ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting review
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/notifications" className="block">
+          <Card className={`transition-all hover:shadow-md cursor-pointer border-l-4 border-l-status-warning ${stats?.pendingNotifications ? 'border-status-warning hover:border-status-warning/80' : 'hover:border-primary/20'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Pending Notifications</CardTitle>
+              <Bell className={`h-4 w-4 ${stats?.pendingNotifications ? 'text-status-warning' : 'text-muted-foreground'}`} />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-3xl font-bold ${stats?.pendingNotifications ? 'text-status-warning' : ''}`}>
+                {stats?.pendingNotifications ?? 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Awaiting review
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Quick actions */}
@@ -231,12 +257,14 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             {stats?.ordersByStage && stats.ordersByStage.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {stats.ordersByStage.map((item) => (
-                  <div key={item.stage} className="flex items-center justify-between">
-                    <span className="text-sm">{item.stage}</span>
-                    <Badge variant="secondary">{item.count}</Badge>
-                  </div>
+                  <Link key={item.stage} href="/admin/orders" className="block">
+                    <div className="flex items-center justify-between p-2 -mx-2 rounded-md transition-colors hover:bg-muted cursor-pointer">
+                      <span className="text-sm">{item.stage}</span>
+                      <Badge variant="secondary">{item.count}</Badge>
+                    </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -272,31 +300,100 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Messages
-            </CardTitle>
-            <CardDescription>Customer inquiries</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats?.unreadMessages ? (
-              <div>
-                <p className="text-2xl font-bold text-primary">{stats.unreadMessages}</p>
-                <p className="text-sm text-muted-foreground">unread messages</p>
-                <Link href="/admin/messages">
-                  <Button variant="outline" className="mt-4 w-full">
-                    View Messages
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No unread messages</p>
-            )}
-          </CardContent>
-        </Card>
+        <Link href="/admin/messages" className="block">
+          <Card className="transition-all hover:shadow-md hover:border-primary/20 cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Messages
+              </CardTitle>
+              <CardDescription>Customer inquiries</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {stats?.unreadMessages ? (
+                <div>
+                  <p className="text-2xl font-bold text-primary">{stats.unreadMessages}</p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    unread messages <ArrowRight className="h-3 w-3" />
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No unread messages</p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
       </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardDescription>Latest updates across all orders</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activitiesLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : activities.length > 0 ? (
+            <div className="space-y-1">
+              {activities.map((activity) => (
+                <Link
+                  key={activity.id}
+                  href={`/admin/orders/${activity.orderId}`}
+                  className="block"
+                >
+                  <div className="flex items-start gap-3 p-2 -mx-2 rounded-md transition-colors hover:bg-muted cursor-pointer">
+                    <div className="mt-0.5">
+                      {activity.type === 'order_created' && (
+                        <ShoppingBag className="h-4 w-4 text-status-pending" />
+                      )}
+                      {activity.type === 'stage_started' && (
+                        <Clock className="h-4 w-4 text-status-info" />
+                      )}
+                      {activity.type === 'stage_completed' && (
+                        <CheckCircle className="h-4 w-4 text-status-success" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm">
+                        {activity.type === 'order_created' && (
+                          <>
+                            <span className="font-medium">{activity.orderNumber}</span>
+                            {' '}created for {activity.customerName}
+                          </>
+                        )}
+                        {activity.type === 'stage_started' && (
+                          <>
+                            <span className="font-medium">{activity.orderNumber}</span>
+                            {' '}started{' '}
+                            <span className="font-medium">{activity.stageName}</span>
+                          </>
+                        )}
+                        {activity.type === 'stage_completed' && (
+                          <>
+                            <span className="font-medium">{activity.orderNumber}</span>
+                            {' '}completed{' '}
+                            <span className="font-medium">{activity.stageName}</span>
+                          </>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(activity.timestamp))} ago
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No recent activity</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Shopify Integration */}
       <Card>
@@ -314,7 +411,7 @@ export default function AdminDashboardPage() {
             <Skeleton className="h-10 w-full" />
           ) : shopifyConnected ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-600">
+              <div className="flex items-center gap-2 text-status-success">
                 <Check className="h-4 w-4" />
                 <span className="text-sm font-medium">Connected to Shopify</span>
               </div>

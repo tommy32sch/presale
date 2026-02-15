@@ -88,11 +88,11 @@ export function ShippingTracker({ carrier, trackingNumber }: ShippingTrackerProp
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'delivered':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-status-success" />;
       case 'out_for_delivery':
-        return <Truck className="h-5 w-5 text-blue-500 animate-pulse" />;
+        return <Truck className="h-5 w-5 text-status-info animate-pulse" />;
       case 'in_transit':
-        return <Package className="h-5 w-5 text-yellow-500" />;
+        return <Package className="h-5 w-5 text-status-warning" />;
       default:
         return <Package className="h-5 w-5 text-muted-foreground" />;
     }
@@ -101,9 +101,9 @@ export function ShippingTracker({ carrier, trackingNumber }: ShippingTrackerProp
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'delivered':
-        return <Badge className="bg-green-500">Delivered</Badge>;
+        return <Badge className="bg-status-success">Delivered</Badge>;
       case 'out_for_delivery':
-        return <Badge className="bg-blue-500">Out for Delivery</Badge>;
+        return <Badge className="bg-status-info">Out for Delivery</Badge>;
       case 'in_transit':
         return <Badge variant="secondary">In Transit</Badge>;
       case 'exception':

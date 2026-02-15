@@ -252,6 +252,29 @@ export default function PhotosPage() {
     });
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedPhotos.size === 0) return;
+
+    const count = selectedPhotos.size;
+    if (!confirm(`Delete ${count} photo${count !== 1 ? 's' : ''}? This cannot be undone.`)) {
+      return;
+    }
+
+    let deleted = 0;
+    for (const id of selectedPhotos) {
+      try {
+        const res = await fetch(`/api/admin/photos?id=${id}`, { method: 'DELETE' });
+        if (res.ok) deleted++;
+      } catch {
+        // continue with others
+      }
+    }
+
+    toast.success(`Deleted ${deleted} photo${deleted !== 1 ? 's' : ''}`);
+    setSelectedPhotos(new Set());
+    fetchPhotos();
+  };
+
   const toggleOrder = (id: string) => {
     setSelectedOrders((prev) => {
       const next = new Set(prev);
@@ -322,6 +345,14 @@ export default function PhotosPage() {
           <Button size="sm" onClick={() => setShowAssignDialog(true)}>
             <Link className="mr-2 h-4 w-4" />
             Assign to Orders
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleBulkDelete}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Selected
           </Button>
           <Button
             size="sm"

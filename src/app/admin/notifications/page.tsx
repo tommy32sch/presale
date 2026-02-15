@@ -183,7 +183,7 @@ export default function NotificationsPage() {
       case 'approved':
         return <Badge variant="default"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
       case 'sent':
-        return <Badge className="bg-green-500"><Send className="h-3 w-3 mr-1" />Sent</Badge>;
+        return <Badge className="bg-status-success"><Send className="h-3 w-3 mr-1" />Sent</Badge>;
       case 'failed':
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
       default:

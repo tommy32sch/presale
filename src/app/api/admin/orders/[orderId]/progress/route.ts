@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
-import { StageStatus } from '@/types';
+
 
 export async function PATCH(
   request: NextRequest,
@@ -84,6 +84,46 @@ export async function PATCH(
         { success: false, error: 'Failed to update progress' },
         { status: 500 }
       );
+    }
+
+    // Auto-complete all prior stages when setting a stage to in_progress or completed
+    if (status === 'in_progress' || status === 'completed') {
+      const { data: currentStage } = await supabase
+        .from('stages')
+        .select('sort_order')
+        .eq('id', stage_id)
+        .single();
+
+      if (currentStage) {
+        const { data: priorStages } = await supabase
+          .from('stages')
+          .select('id')
+          .lt('sort_order', currentStage.sort_order);
+
+        if (priorStages && priorStages.length > 0) {
+          const priorStageIds = priorStages.map((s) => s.id);
+
+          const { data: priorProgress } = await supabase
+            .from('order_progress')
+            .select('id, started_at')
+            .eq('order_id', orderId)
+            .in('stage_id', priorStageIds)
+            .neq('status', 'completed');
+
+          if (priorProgress && priorProgress.length > 0) {
+            for (const prior of priorProgress) {
+              await supabase
+                .from('order_progress')
+                .update({
+                  status: 'completed',
+                  started_at: prior.started_at || now,
+                  completed_at: now,
+                })
+                .eq('id', prior.id);
+            }
+          }
+        }
+      }
     }
 
     // Queue notification if requested and status changed

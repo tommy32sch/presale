@@ -10,9 +10,10 @@ export interface Order {
   id: string;
   order_number: string;
   customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  customer_phone_normalized: string;
+  customer_email: string | null;
+  customer_email_normalized: string | null;
+  customer_phone: string | null;
+  customer_phone_normalized: string | null;
   items_description: string;
   quantity: number;
   carrier: Carrier | null;
@@ -109,7 +110,9 @@ export interface OrderProgressWithStage extends OrderProgress {
 // API Request/Response types
 export interface OrderLookupRequest {
   orderNumber: string;
-  phone: string;
+  phone?: string;
+  email?: string;
+  lookupType: 'phone' | 'email';
 }
 
 export interface OrderLookupResponse {
@@ -164,4 +167,17 @@ export interface DashboardStats {
   pendingNotifications: number;
   unreadMessages: number;
   ordersByStage: { stage: string; count: number }[];
+}
+
+// Activity feed
+export type ActivityType = 'order_created' | 'stage_started' | 'stage_completed';
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityType;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  stageName?: string;
+  timestamp: string;
 }

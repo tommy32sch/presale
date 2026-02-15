@@ -1,0 +1,205 @@
+/**
+ * Live Inventory Counter Styles
+ *
+ * Minimal, theme-compatible styling for the inventory counter.
+ * Uses CSS custom properties for easy customization.
+ */
+
+/* =============================================================================
+   CSS Custom Properties (Override in your theme)
+   ============================================================================= */
+
+:root {
+  --inventory-counter-font-size: 0.875rem;
+  --inventory-counter-color: var(--color-text-secondary, #666);
+  --inventory-counter-gap: 0.25em;
+  --inventory-counter-margin: 0.5rem 0;
+
+  --sold-out-badge-bg: var(--color-background-secondary, #f5f5f5);
+  --sold-out-badge-color: var(--color-text-muted, #999);
+  --sold-out-badge-padding: 0.25em 0.75em;
+  --sold-out-badge-radius: 2px;
+  --sold-out-badge-font-size: 0.75rem;
+
+  --inventory-animation-duration: 0.3s;
+}
+
+/* =============================================================================
+   Base Counter Styles
+   ============================================================================= */
+
+.inventory-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--inventory-counter-gap);
+  font-size: var(--inventory-counter-font-size);
+  color: var(--inventory-counter-color);
+  margin: var(--inventory-counter-margin);
+  line-height: 1.4;
+}
+
+/* =============================================================================
+   Inventory Status (In Stock)
+   ============================================================================= */
+
+.inventory-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.inventory-number {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  transition: opacity 0.2s ease, transform var(--inventory-animation-duration) ease;
+}
+
+.inventory-number.updating {
+  opacity: 0.5;
+}
+
+.inventory-label {
+  font-weight: 400;
+}
+
+/* =============================================================================
+   Number Change Animation
+   ============================================================================= */
+
+@keyframes inventory-tick {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-2px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.inventory-number.changed {
+  animation: inventory-tick var(--inventory-animation-duration) ease;
+}
+
+/* =============================================================================
+   Sold Out State
+   ============================================================================= */
+
+.inventory-counter--sold-out {
+  /* Inherits base styles */
+}
+
+.sold-out-badge {
+  display: inline-block;
+  padding: var(--sold-out-badge-padding);
+  background: var(--sold-out-badge-bg);
+  color: var(--sold-out-badge-color);
+  border-radius: var(--sold-out-badge-radius);
+  font-size: var(--sold-out-badge-font-size);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* =============================================================================
+   Loading Indicator
+   ============================================================================= */
+
+.inventory-loading {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  margin-left: 0.5em;
+}
+
+.inventory-loading-dot {
+  width: 4px;
+  height: 4px;
+  background-color: currentColor;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: inventory-loading-pulse 1.4s ease-in-out infinite;
+}
+
+.inventory-loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.inventory-loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.inventory-loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes inventory-loading-pulse {
+  0%, 80%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* =============================================================================
+   Accessibility
+   ============================================================================= */
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .inventory-number.changed {
+    animation: none;
+  }
+
+  .inventory-loading-dot {
+    animation: none;
+    opacity: 0.6;
+  }
+
+  .inventory-number {
+    transition: none;
+  }
+}
+
+/* Screen reader only text (if needed) */
+.inventory-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =============================================================================
+   Theme Integration Helpers
+   ============================================================================= */
+
+/* Common positioning within product forms */
+.product-form .inventory-counter,
+.product__info-container .inventory-counter,
+.product-single__meta .inventory-counter {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Ensure counter doesn't break layout on small screens */
+@media screen and (max-width: 480px) {
+  .inventory-counter {
+    font-size: 0.8125rem;
+  }
+
+  .sold-out-badge {
+    font-size: 0.6875rem;
+  }
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { normalizePhone } from '@/lib/utils/phone';
+import { normalizeEmail } from '@/lib/utils/email';
 import { normalizeOrderNumber } from '@/lib/utils/order';
 import { checkRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 import { OrderWithProgress } from '@/types';
@@ -29,50 +30,106 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { orderNumber, phone } = body;
+    const { orderNumber, phone, email, lookupType } = body;
 
     // Validate inputs
-    if (!orderNumber || !phone) {
+    if (!orderNumber) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Order number and phone number are required.',
+          error: 'Order number is required.',
         },
         { status: 400 }
       );
+    }
+
+    // Must have either phone or email based on lookupType
+    if (lookupType === 'email') {
+      if (!email) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Email address is required.',
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Default to phone lookup for backwards compatibility
+      if (!phone) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Phone number is required.',
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Normalize inputs
     const normalizedOrderNumber = normalizeOrderNumber(orderNumber);
-    const normalizedPhone = normalizePhone(phone);
-
-    if (!normalizedPhone) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Please enter a valid phone number.',
-        },
-        { status: 400 }
-      );
-    }
-
     const supabase = db();
 
-    // Look up order with both order number AND phone number
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('order_number', normalizedOrderNumber)
-      .eq('customer_phone_normalized', normalizedPhone)
-      .eq('is_cancelled', false)
-      .single();
+    let order;
+    let orderError;
+
+    if (lookupType === 'email') {
+      const normalizedEmail = normalizeEmail(email);
+
+      if (!normalizedEmail) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Please enter a valid email address.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Look up order with order number AND email
+      const result = await supabase
+        .from('orders')
+        .select('*')
+        .eq('order_number', normalizedOrderNumber)
+        .eq('customer_email_normalized', normalizedEmail)
+        .eq('is_cancelled', false)
+        .single();
+
+      order = result.data;
+      orderError = result.error;
+    } else {
+      const normalizedPhone = normalizePhone(phone);
+
+      if (!normalizedPhone) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Please enter a valid phone number.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Look up order with order number AND phone number
+      const result = await supabase
+        .from('orders')
+        .select('*')
+        .eq('order_number', normalizedOrderNumber)
+        .eq('customer_phone_normalized', normalizedPhone)
+        .eq('is_cancelled', false)
+        .single();
+
+      order = result.data;
+      orderError = result.error;
+    }
 
     if (orderError || !order) {
+      const lookupField = lookupType === 'email' ? 'email address' : 'phone number';
       return NextResponse.json(
         {
           success: false,
-          error:
-            'Order not found. Please check your order number and phone number. Need help? Contact us.',
+          error: `Order not found. Please check your order number and ${lookupField}. Need help? Contact us.`,
         },
         { status: 404 }
       );
@@ -124,11 +181,13 @@ export async function POST(request: NextRequest) {
       .eq('order_id', order.id)
       .maybeSingle();
 
-    // Build response - mask sensitive phone data
+    // Build response - mask sensitive data
     const orderWithProgress: OrderWithProgress = {
       ...order,
-      customer_phone: maskPhoneDisplay(order.customer_phone),
+      customer_phone: order.customer_phone ? maskPhoneDisplay(order.customer_phone) : '',
       customer_phone_normalized: '', // Don't expose normalized phone
+      customer_email: order.customer_email ? maskEmailDisplay(order.customer_email) : '',
+      customer_email_normalized: '', // Don't expose normalized email
       progress: progress || [],
       photos,
       notification_preferences: notificationPrefs || undefined,
@@ -156,4 +215,15 @@ function maskPhoneDisplay(phone: string): string {
   const lastFour = phone.slice(-4);
   const prefix = phone.slice(0, -4).replace(/\d/g, '*');
   return prefix + lastFour;
+}
+
+// Mask email for display: john.doe@gmail.com -> j***e@gmail.com
+function maskEmailDisplay(email: string): string {
+  const [localPart, domain] = email.split('@');
+  if (!domain || localPart.length < 2) {
+    return email;
+  }
+  const firstChar = localPart[0];
+  const lastChar = localPart[localPart.length - 1];
+  return `${firstChar}${'*'.repeat(Math.min(localPart.length - 2, 5))}${lastChar}@${domain}`;
 }

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import {
   Package,
   ArrowLeft,
@@ -185,19 +186,22 @@ export default function TrackOrderPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-background z-10">
+      <header className="border-b sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Package className="h-6 w-6" />
+              <Package className="h-6 w-6 text-primary" />
               <span className="font-bold text-lg">Order Tracker</span>
             </Link>
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                New Lookup
-              </Button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <Link href="/">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  New Lookup
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -229,7 +233,7 @@ export default function TrackOrderPage() {
           <CardContent>
             {currentStage ? (
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
+                <div className="w-3 h-3 bg-status-info rounded-full animate-pulse" />
                 <div>
                   <p className="font-medium">{currentStage.stage?.display_name}</p>
                   <p className="text-sm text-muted-foreground">
@@ -239,7 +243,7 @@ export default function TrackOrderPage() {
               </div>
             ) : lastCompletedStage ? (
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                <div className="w-3 h-3 bg-status-success rounded-full" />
                 <div>
                   <p className="font-medium">{lastCompletedStage.stage?.display_name}</p>
                   <p className="text-sm text-muted-foreground">Completed</p>

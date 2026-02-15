@@ -38,9 +38,103 @@ export async function GET(request: NextRequest) {
       query = query.or(`order_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_email.ilike.%${search}%`);
     }
 
+    // Apply stage filter (orders whose current stage matches)
+    if (stage) {
+      const stageId = parseInt(stage);
+      if (!isNaN(stageId)) {
+        const { data: selectedStage } = await supabase
+          .from('stages')
+          .select('sort_order')
+          .eq('id', stageId)
+          .single();
+
+        if (!selectedStage) {
+          return NextResponse.json({
+            success: true,
+            orders: [],
+            pagination: { page, limit, total: 0, totalPages: 0 },
+          });
+        }
+
+        // 1) Orders where this stage is currently in_progress
+        const { data: inProgressOrders } = await supabase
+          .from('order_progress')
+          .select('order_id')
+          .eq('stage_id', stageId)
+          .eq('status', 'in_progress');
+
+        const inProgressIds = inProgressOrders?.map((p) => p.order_id) || [];
+
+        // 2) Orders where this stage is completed but no later stage is active
+        const { data: completedAtStage } = await supabase
+          .from('order_progress')
+          .select('order_id')
+          .eq('stage_id', stageId)
+          .eq('status', 'completed');
+
+        const completedOrderIds = completedAtStage?.map((p) => p.order_id) || [];
+        let stuckAtStageIds: string[] = [];
+
+        if (completedOrderIds.length > 0) {
+          const { data: laterStages } = await supabase
+            .from('stages')
+            .select('id')
+            .gt('sort_order', selectedStage.sort_order);
+
+          const laterStageIds = laterStages?.map((s) => s.id) || [];
+
+          if (laterStageIds.length > 0) {
+            const { data: progressedOrders } = await supabase
+              .from('order_progress')
+              .select('order_id')
+              .in('order_id', completedOrderIds)
+              .in('stage_id', laterStageIds)
+              .in('status', ['in_progress', 'completed']);
+
+            const progressedIds = new Set(progressedOrders?.map((p) => p.order_id) || []);
+            stuckAtStageIds = completedOrderIds.filter((id) => !progressedIds.has(id));
+          } else {
+            stuckAtStageIds = completedOrderIds;
+          }
+        }
+
+        const allMatchingIds = [...new Set([...inProgressIds, ...stuckAtStageIds])];
+
+        if (allMatchingIds.length > 0) {
+          query = query.in('id', allMatchingIds);
+        } else {
+          return NextResponse.json({
+            success: true,
+            orders: [],
+            pagination: { page, limit, total: 0, totalPages: 0 },
+          });
+        }
+      }
+    }
+
     // Apply status filter
     if (status === 'delayed') {
       query = query.eq('is_delayed', true);
+    } else if (status === 'active') {
+      // Active = not yet delivered
+      const { data: deliveredStage } = await supabase
+        .from('stages')
+        .select('id')
+        .eq('name', 'delivered')
+        .single();
+
+      if (deliveredStage) {
+        const { data: deliveredProgress } = await supabase
+          .from('order_progress')
+          .select('order_id')
+          .eq('stage_id', deliveredStage.id)
+          .eq('status', 'completed');
+
+        const deliveredIds = deliveredProgress?.map((p) => p.order_id) || [];
+        if (deliveredIds.length > 0) {
+          query = query.not('id', 'in', `(${deliveredIds.join(',')})`);
+        }
+      }
     }
 
     const { data: orders, error, count } = await query;
@@ -53,9 +147,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Map Supabase's `order_progress` join key to `progress` to match OrderWithProgress type
+    const mappedOrders = (orders || []).map(({ order_progress, ...rest }: any) => ({
+      ...rest,
+      progress: order_progress || [],
+    }));
+
     return NextResponse.json({
       success: true,
-      orders: orders || [],
+      orders: mappedOrders,
       pagination: {
         page,
         limit,

@@ -1,0 +1,82 @@
+{% comment %}
+  Live Inventory Counter
+
+  Displays real-time inventory quantity for products.
+  Polls Shopify Storefront API for live updates.
+
+  Required variables:
+  - product: The product object
+  - current_variant: The currently selected variant (optional, defaults to first available)
+
+  Usage:
+  {% render 'inventory-counter', product: product, current_variant: current_variant %}
+
+  Requirements:
+  - Storefront API token configured in theme settings
+  - inventory-counter.js loaded in theme
+  - inventory-counter.css loaded in theme
+{% endcomment %}
+
+{% comment %} Check if feature is enabled {% endcomment %}
+{% unless settings.inventory_counter_enabled == false %}
+
+  {% comment %} Determine the current variant {% endcomment %}
+  {% assign selected_variant = current_variant | default: product.selected_or_first_available_variant %}
+
+  {% comment %} Get inventory tracking status {% endcomment %}
+  {% assign tracks_inventory = selected_variant.inventory_management == 'shopify' %}
+  {% assign inventory_quantity = selected_variant.inventory_quantity | default: 0 %}
+
+  {% comment %} Only show counter if inventory is tracked {% endcomment %}
+  {% if tracks_inventory %}
+
+    {% if product.available and inventory_quantity > 0 %}
+      {% comment %} In Stock State {% endcomment %}
+      <div
+        class="inventory-counter"
+        data-inventory-counter
+        data-product-handle="{{ product.handle }}"
+        data-product-id="{{ product.id }}"
+        data-current-variant-id="{{ selected_variant.id }}"
+        data-storefront-token="{{ settings.storefront_api_token }}"
+        data-poll-interval="{{ settings.inventory_poll_interval | default: 5 }}"
+        data-shop-domain="{{ shop.permanent_domain }}"
+      >
+        <span class="inventory-status" data-inventory-status>
+          <span class="inventory-number" data-inventory-number>{{ inventory_quantity }}</span>
+          <span class="inventory-label">in stock</span>
+        </span>
+
+        {% comment %} Loading indicator (hidden by default) {% endcomment %}
+        <span class="inventory-loading" data-inventory-loading aria-hidden="true">
+          <span class="inventory-loading-dot"></span>
+          <span class="inventory-loading-dot"></span>
+          <span class="inventory-loading-dot"></span>
+        </span>
+      </div>
+
+    {% else %}
+      {% comment %} Sold Out State {% endcomment %}
+      <div
+        class="inventory-counter inventory-counter--sold-out"
+        data-inventory-counter
+        data-product-handle="{{ product.handle }}"
+        data-product-id="{{ product.id }}"
+        data-current-variant-id="{{ selected_variant.id }}"
+        data-storefront-token="{{ settings.storefront_api_token }}"
+        data-poll-interval="{{ settings.inventory_poll_interval | default: 5 }}"
+        data-shop-domain="{{ shop.permanent_domain }}"
+      >
+        <span class="sold-out-badge" data-sold-out-badge>Sold Out</span>
+
+        {% comment %} Hidden status for when item comes back in stock {% endcomment %}
+        <span class="inventory-status" data-inventory-status style="display: none;">
+          <span class="inventory-number" data-inventory-number>0</span>
+          <span class="inventory-label">in stock</span>
+        </span>
+      </div>
+    {% endif %}
+
+  {% endif %}
+
+{% endunless %}

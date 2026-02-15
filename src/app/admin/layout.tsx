@@ -13,6 +13,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
   Package,
   LayoutDashboard,
   ShoppingCart,
@@ -22,8 +29,8 @@ import {
   LogOut,
   User,
   Menu,
-  X,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils';
 
 interface AdminUser {
@@ -104,18 +111,42 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-background z-50">
+      <header className="border-b sticky top-0 bg-background/80 backdrop-blur-md z-50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
-            {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+            {/* Mobile menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Admin Menu
+                  </SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-1 mt-4 px-2">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Button
+                        variant={pathname === item.href ? 'secondary' : 'ghost'}
+                        className="w-full justify-start gap-2 h-11"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
 
             <Link href="/admin" className="flex items-center gap-2">
               <Package className="h-6 w-6" />
@@ -131,7 +162,7 @@ export default function AdminLayout({
                 <Button
                   variant={pathname === item.href ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 transition-all"
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
@@ -140,6 +171,8 @@ export default function AdminLayout({
             ))}
           </nav>
 
+          <div className="flex items-center gap-1">
+          <ThemeToggle />
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -159,28 +192,8 @@ export default function AdminLayout({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
-
-        {/* Mobile navigation */}
-        {mobileMenuOpen && (
-          <nav className="md:hidden border-t p-2 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Button
-                  variant={pathname === item.href ? 'secondary' : 'ghost'}
-                  className={cn('w-full justify-start gap-2')}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              </Link>
-            ))}
-          </nav>
-        )}
       </header>
 
       {/* Main content */}

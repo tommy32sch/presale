@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Live Inventory Counter",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Inventory Counter Settings"
+      },
+      {
+        "type": "paragraph",
+        "content": "Display real-time inventory counts on product pages. Requires a Storefront API access token."
+      },
+      {
+        "type": "checkbox",
+        "id": "inventory_counter_enabled",
+        "label": "Enable live inventory counter",
+        "default": true,
+        "info": "Show inventory count on product pages"
+      },
+      {
+        "type": "text",
+        "id": "storefront_api_token",
+        "label": "Storefront API Access Token",
+        "info": "Required for real-time updates. Create in Shopify Admin → Settings → Apps → Develop apps. This token is safe to use in frontend code (read-only access)."
+      },
+      {
+        "type": "range",
+        "id": "inventory_poll_interval",
+        "label": "Update frequency (seconds)",
+        "min": 3,
+        "max": 30,
+        "step": 1,
+        "default": 5,
+        "info": "How often to check for inventory changes. Lower values = more real-time, higher API usage."
+      }
+    ]
+  }
+]

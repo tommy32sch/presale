@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
 import { normalizePhone } from '@/lib/utils/phone';
+import { normalizeEmail } from '@/lib/utils/email';
+import { refreshShopifyToken, verifyShopifyToken, updateStoredToken } from '@/lib/shopify/token';
 
 interface ShopifyOrder {
   id: number;
@@ -49,14 +51,35 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (connection?.access_token) {
-      // Check if token is expired
+      // Check if token is expired or expiring soon (within 1 hour)
       const expiresAt = connection.expires_at ? new Date(connection.expires_at) : null;
-      const isExpired = expiresAt && expiresAt < new Date();
+      const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+      const needsRefresh = expiresAt && expiresAt < oneHourFromNow;
 
-      if (!isExpired) {
+      if (!needsRefresh) {
         accessToken = connection.access_token;
       } else {
-        console.log('Database token expired, will try env variable');
+        // Token expired or expiring soon - try to refresh it
+        console.log('Token expired or expiring soon, attempting refresh...');
+        const refreshResult = await refreshShopifyToken();
+
+        if (refreshResult.success && refreshResult.accessToken) {
+          // Verify the new token works
+          const isValid = await verifyShopifyToken(refreshResult.accessToken);
+
+          if (isValid) {
+            // Save the new token
+            await updateStoredToken(refreshResult.accessToken, refreshResult.expiresAt!);
+            accessToken = refreshResult.accessToken;
+            console.log('Token refreshed successfully');
+          } else {
+            console.log('Refreshed token failed verification, using existing token');
+            accessToken = connection.access_token;
+          }
+        } else {
+          console.log('Token refresh failed, using existing token:', refreshResult.error);
+          accessToken = connection.access_token;
+        }
       }
     }
 
@@ -133,8 +156,12 @@ export async function POST(request: NextRequest) {
         shopifyOrder.billing_address?.phone ||
         '';
 
-      // Skip if no phone (required for lookup)
-      if (!customerPhone) {
+      // Normalize phone and email for lookups
+      const normalizedPhone = customerPhone ? normalizePhone(customerPhone) : null;
+      const normalizedEmail = customerEmail ? normalizeEmail(customerEmail) : null;
+
+      // Skip if no phone AND no email (need at least one for lookup)
+      if (!normalizedPhone && !normalizedEmail) {
         skipped++;
         continue;
       }
@@ -155,9 +182,10 @@ export async function POST(request: NextRequest) {
         .insert({
           order_number: orderNumber,
           customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          customer_phone_normalized: normalizePhone(customerPhone),
+          customer_email: customerEmail || null,
+          customer_email_normalized: normalizedEmail,
+          customer_phone: customerPhone || null,
+          customer_phone_normalized: normalizedPhone,
           items_description: itemsDescription,
           quantity: totalQuantity,
         })

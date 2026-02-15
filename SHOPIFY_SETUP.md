@@ -1,135 +1,220 @@
 # Shopify Integration Setup Guide
 
-This guide will walk you through setting up automatic order syncing from your Shopify store.
+This guide documents the complete process of setting up automatic order syncing from Shopify, including lessons learned and troubleshooting tips.
+
+## Important: Shopify UI Changes (January 2026)
+
+Shopify updated their admin interface in January 2026. The traditional method of creating custom apps and clicking "Reveal token once" may not work as expected. This guide documents the **client_credentials method** which works reliably.
 
 ## Prerequisites
 
-- A Shopify store
-- Admin access to your Shopify store
-- Your app deployed to a publicly accessible URL (required for webhooks)
+- A Shopify store with admin access
+- Your app deployed to a publicly accessible URL (e.g., Vercel)
+- Node.js and npm installed locally
 
-## Step 1: Get Your Shopify Admin API Token
+## Your Store Information
 
-1. Log in to your Shopify admin panel
-2. Go to **Settings** > **Apps and sales channels**
-3. Click **Develop apps** (you may need to enable custom app development first)
-4. Click **Create an app**
-5. Name your app (e.g., "Presale Order Tracker")
-6. Click **Configure Admin API scopes**
-7. Select the following scopes:
-   - `read_orders` - To read order data
-   - `read_customers` - To read customer information
-8. Click **Save**
-9. Click **Install app**
-10. Click **Reveal token once** and copy the **Admin API access token**
-   - It will look like: `shpat_xxxxxxxxxxxxxxxxxxxxx`
-   - **Important**: Save this token securely - you can only see it once!
+When setting up, you'll need:
+- **Store Domain**: Your internal Shopify domain (e.g., `978sp6-1n.myshopify.com`)
+  - This is NOT your custom domain (like `ivoryson.com`)
+  - Find it in your Shopify admin URL: `admin.shopify.com/store/[store-id]`
+- **Client ID**: Found in your Shopify app settings
+- **Client Secret**: Found in your Shopify app settings (starts with `shpss_`)
 
-## Step 2: Configure Environment Variables
+## Step 1: Create a Shopify App
 
-Update your `.env.local` file with the following:
+1. Go to **Settings** > **Apps and sales channels** > **Develop apps**
+2. Click **Create an app**
+3. Name it (e.g., "Presale Order Tracker")
+4. Go to **Configure Admin API scopes** and enable:
+   - `read_orders`
+   - `read_customers`
+5. Click **Save**
+6. Note down your **Client ID** and **Client Secret** from the app settings
+
+## Step 2: Get Access Token Using Client Credentials
+
+Since the Shopify UI changed, the most reliable way to get an access token is via the OAuth client_credentials grant:
+
+```bash
+curl -X POST "https://YOUR-STORE-ID.myshopify.com/admin/oauth/access_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"
+```
+
+**Example:**
+```bash
+curl -X POST "https://978sp6-1n.myshopify.com/admin/oauth/access_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"
+```
+
+**Response:**
+```json
+{
+  "access_token": "shpat_xxxxxxxxxxxxxxxxxxxxx",
+  "scope": "read_customers,read_orders",
+  "expires_in": 86399
+}
+```
+
+**Important Notes:**
+- The token expires in ~24 hours (86399 seconds)
+- You'll need to refresh the token periodically for long-term use
+- The token format is `shpat_` followed by a hex string
+
+## Step 3: Configure Environment Variables
+
+### Local (.env.local)
 
 ```env
 # Shopify Integration
-SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-SHOPIFY_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxxxxxxx
-SHOPIFY_WEBHOOK_SECRET=your_random_secret_string
+SHOPIFY_STORE_DOMAIN=978sp6-1n.myshopify.com
+SHOPIFY_CLIENT_ID=your_client_id
+SHOPIFY_CLIENT_SECRET=shpss_your_client_secret
+SHOPIFY_ACCESS_TOKEN=shpat_your_access_token
+SHOPIFY_WEBHOOK_SECRET=your_webhook_secret
 
 # App URL (required for webhooks)
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 ```
 
-Replace:
-- `your-store.myshopify.com` with your actual Shopify store domain
-- `shpat_xxxxxxxxxxxxxxxxxxxxx` with your Admin API access token from Step 1
-- `your_random_secret_string` with a random secret (e.g., generate one with `openssl rand -hex 32`)
-- `https://your-app.vercel.app` with your deployed app URL
+### Vercel Environment Variables
 
-**Important for local development:**
-- Webhooks require a publicly accessible URL
-- For local testing, use a tool like [ngrok](https://ngrok.com/) to create a tunnel:
-  ```bash
-  ngrok http 3000
-  ```
-  Then use the ngrok URL as your `NEXT_PUBLIC_APP_URL`
+Set the same variables in Vercel:
+```bash
+npx vercel env add SHOPIFY_STORE_DOMAIN production <<< "978sp6-1n.myshopify.com"
+npx vercel env add SHOPIFY_ACCESS_TOKEN production <<< "shpat_xxxxx"
+```
 
-## Step 3: Deploy Your App
+**Verify your Vercel environment:**
+```bash
+npx vercel env ls
+npx vercel env pull .env.vercel  # Download to check values
+```
 
-1. Make sure all environment variables are set in your deployment platform (Vercel, etc.)
-2. Deploy your app
-3. Verify your app is accessible at the URL you set in `NEXT_PUBLIC_APP_URL`
+## Step 4: Register Webhook
 
-## Step 4: Connect Shopify in the Admin Dashboard
+Register the webhook to receive order creation events:
 
-1. Go to your app's admin dashboard
-2. Scroll to the **Shopify Integration** section
-3. Click **Enter Access Token Manually**
-4. Paste your Admin API access token
-5. Click **Save Token**
+```bash
+curl -X POST "https://YOUR-STORE-ID.myshopify.com/admin/api/2024-01/webhooks.json" \
+  -H "X-Shopify-Access-Token: shpat_YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook": {
+      "topic": "orders/create",
+      "address": "https://your-app.vercel.app/api/webhooks/shopify/orders",
+      "format": "json"
+    }
+  }'
+```
 
-This will:
-- Save your connection to the database
-- Automatically register a webhook with Shopify for `orders/create` events
-- Enable real-time order syncing
+**Verify webhook registration:**
+```bash
+curl -X GET "https://YOUR-STORE-ID.myshopify.com/admin/api/2024-01/webhooks.json" \
+  -H "X-Shopify-Access-Token: shpat_YOUR_ACCESS_TOKEN"
+```
 
-## Step 5: Test the Integration
+## Step 5: Deploy and Test
 
-### Test Webhook Registration
+1. Deploy to Vercel: `npx vercel --prod`
+2. Test manual sync:
+   ```bash
+   # Login first
+   curl -c cookies.txt -X POST https://your-app.vercel.app/api/admin/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"your@email.com","password":"yourpassword"}'
 
-1. Log in to your Shopify admin
-2. Go to **Settings** > **Notifications**
-3. Scroll down to **Webhooks**
-4. You should see a webhook for "Order creation" pointing to your app URL
+   # Sync orders
+   curl -b cookies.txt -X POST https://your-app.vercel.app/api/admin/shopify/sync
+   ```
 
-### Test Order Sync
+3. Create a test order in Shopify with a **phone number** (required!)
 
-Create a test order in your Shopify store:
-1. Go to **Orders** > **Create order**
-2. Fill in customer details (make sure to include a phone number)
-3. Add a product
-4. Click **Create order**
+## Lessons Learned
 
-The order should appear in your presale tracker within seconds!
+### 1. Store Domain vs Custom Domain
+- Your store has an internal Shopify domain: `xxx-xx.myshopify.com`
+- This is different from your custom domain (e.g., `ivoryson.com`)
+- Find your store ID in the admin URL: `admin.shopify.com/store/[THIS-PART]`
 
-### Manual Sync
+### 2. UI Changed - Use Client Credentials
+- The old "Reveal token once" flow may not work consistently
+- Use the `client_credentials` POST request method instead
+- This is documented by Shopify but not prominent in the UI
 
-You can also manually sync existing orders:
-1. Go to your admin dashboard
-2. Click **Sync Orders from Shopify**
-3. This will fetch and import all orders from Shopify (up to 250)
+### 3. Token Expiration
+- Client credentials tokens expire in ~24 hours
+- For production, consider implementing token refresh
+- Or use the traditional custom app method if available
+
+### 4. Phone Numbers Required
+- Orders without customer phone numbers are **skipped**
+- This is because the tracking lookup feature uses phone numbers
+- Ensure customers provide phone numbers at checkout
+
+### 5. Environment Variable Sync Issues
+- Vercel env vars can get out of sync with local
+- Always verify with `npx vercel env pull` after changes
+- Make sure to redeploy after updating env vars
+
+### 6. Webhook Signature Verification
+- Webhooks use HMAC-SHA256 for verification
+- The webhook secret is generated when you create the app
+- Make sure `SHOPIFY_WEBHOOK_SECRET` matches in your env
 
 ## Troubleshooting
 
-### Webhooks not working
+### "Failed to fetch orders from Shopify"
+1. Verify the access token is correct and not expired
+2. Check the store domain matches exactly (internal domain, not custom)
+3. Test the API directly:
+   ```bash
+   curl "https://YOUR-STORE.myshopify.com/admin/api/2024-01/orders.json?limit=1" \
+     -H "X-Shopify-Access-Token: shpat_YOUR_TOKEN"
+   ```
 
-1. Check that `NEXT_PUBLIC_APP_URL` is set to your publicly accessible URL
-2. Verify the webhook is registered in Shopify admin > Settings > Notifications > Webhooks
-3. Check your server logs for webhook verification errors
-4. Make sure `SHOPIFY_WEBHOOK_SECRET` matches on both sides
+### Orders synced but showing as "skipped"
+- Orders without phone numbers are skipped
+- Check the order data in Shopify for phone field
 
-### Orders not appearing
+### Webhook not receiving events
+1. Verify webhook is registered: Check Shopify admin > Settings > Notifications > Webhooks
+2. Check your app URL is publicly accessible
+3. Review Vercel function logs for errors
 
-1. Check that orders have a customer phone number (required)
-2. Verify the access token has the correct scopes (`read_orders`, `read_customers`)
-3. Check server logs for errors
-4. Try manual sync to see if there are any error messages
+### Token expired
+- Re-run the client_credentials curl command to get a new token
+- Update both local `.env.local` and Vercel env vars
+- Redeploy: `npx vercel --prod`
 
-### Token errors
+## Quick Reference Commands
 
-1. Make sure you copied the entire token including the `shpat_` prefix
-2. Verify you're using the Admin API access token, not the API key
-3. Check that the token hasn't been revoked in Shopify admin
+```bash
+# Get new access token
+curl -X POST "https://978sp6-1n.myshopify.com/admin/oauth/access_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=YOUR_ID&client_secret=YOUR_SECRET"
 
-## How It Works
+# Test API connection
+curl "https://978sp6-1n.myshopify.com/admin/api/2024-01/orders.json?limit=1" \
+  -H "X-Shopify-Access-Token: YOUR_TOKEN"
 
-1. **Automatic Sync**: When an order is created in Shopify, Shopify sends a webhook to your app
-2. **Webhook Handler**: Your app verifies the webhook signature and processes the order
-3. **Order Creation**: The order is created in your database with progress tracking initialized
-4. **Manual Sync**: You can also manually sync orders using the button in the admin dashboard
+# List webhooks
+curl "https://978sp6-1n.myshopify.com/admin/api/2024-01/webhooks.json" \
+  -H "X-Shopify-Access-Token: YOUR_TOKEN"
 
-## Security
+# Update Vercel env
+npx vercel env add SHOPIFY_ACCESS_TOKEN production
 
-- Webhooks are verified using HMAC-SHA256 signatures
-- Only authenticated admin users can configure Shopify integration
-- Access tokens are stored securely in environment variables
-- The webhook secret ensures only Shopify can send webhooks to your app
+# Deploy
+npx vercel --prod
+```
+
+## Current Configuration (for reference)
+
+- **Store Domain**: `978sp6-1n.myshopify.com`
+- **App URL**: `https://presale-tracker.vercel.app`
+- **Webhook Endpoint**: `https://presale-tracker.vercel.app/api/webhooks/shopify/orders`
+- **Webhook Topic**: `orders/create`

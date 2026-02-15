@@ -45,9 +45,9 @@ function getStageIcon(iconName: string | null) {
 function getStatusColor(status: StageStatus): string {
   switch (status) {
     case 'completed':
-      return 'bg-green-500 border-green-500';
+      return 'bg-status-success border-status-success';
     case 'in_progress':
-      return 'bg-blue-500 border-blue-500 animate-pulse';
+      return 'bg-status-info border-status-info animate-pulse';
     default:
       return 'bg-muted border-muted-foreground/30';
   }
@@ -56,9 +56,9 @@ function getStatusColor(status: StageStatus): string {
 function getStatusBadge(status: StageStatus) {
   switch (status) {
     case 'completed':
-      return <Badge variant="default" className="bg-green-500">Completed</Badge>;
+      return <Badge variant="default" className="bg-status-success">Completed</Badge>;
     case 'in_progress':
-      return <Badge variant="default" className="bg-blue-500">In Progress</Badge>;
+      return <Badge variant="default" className="bg-status-info">In Progress</Badge>;
     default:
       return <Badge variant="secondary">Upcoming</Badge>;
   }
@@ -104,7 +104,7 @@ export function VerticalTimeline({ progress, photos = [], lastUpdated }: Vertica
         </div>
         <div className="w-full bg-muted rounded-full h-2">
           <div
-            className="bg-green-500 h-2 rounded-full transition-all duration-500"
+            className="bg-status-success h-2 rounded-full transition-all duration-500"
             style={{ width: `${(completedCount / progress.length) * 100}%` }}
           />
         </div>
@@ -132,7 +132,7 @@ export function VerticalTimeline({ progress, photos = [], lastUpdated }: Vertica
                 <div
                   className={cn(
                     'absolute left-5 top-10 w-0.5 h-full -ml-px',
-                    isCompleted ? 'bg-green-500' : 'bg-muted-foreground/30'
+                    isCompleted ? 'bg-status-success' : 'bg-muted-foreground/30'
                   )}
                 />
               )}
@@ -141,7 +141,7 @@ export function VerticalTimeline({ progress, photos = [], lastUpdated }: Vertica
               <div
                 className={cn(
                   'relative flex gap-4 cursor-pointer transition-all',
-                  isInProgress && 'bg-blue-500/10 -mx-4 px-4 py-3 rounded-lg'
+                  isInProgress && 'bg-status-info-muted -mx-4 px-4 py-3 rounded-lg'
                 )}
                 onClick={() => toggleExpanded(item.stage_id)}
               >
@@ -166,8 +166,8 @@ export function VerticalTimeline({ progress, photos = [], lastUpdated }: Vertica
                     <h3
                       className={cn(
                         'font-semibold',
-                        isCompleted && 'text-green-600 dark:text-green-400',
-                        isInProgress && 'text-blue-600 dark:text-blue-400'
+                        isCompleted && 'text-status-success',
+                        isInProgress && 'text-status-info'
                       )}
                     >
                       {item.stage?.display_name}
@@ -204,7 +204,7 @@ export function VerticalTimeline({ progress, photos = [], lastUpdated }: Vertica
                       </p>
                     )}
                     {isInProgress && item.estimated_end_date && (
-                      <p className="text-blue-600 dark:text-blue-400 font-medium">
+                      <p className="text-status-info font-medium">
                         Projected completion: {format(new Date(item.estimated_end_date), 'MMM d, yyyy')}
                       </p>
                     )}

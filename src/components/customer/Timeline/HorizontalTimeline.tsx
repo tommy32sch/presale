@@ -49,15 +49,15 @@ function getStatusClasses(status: StageStatus): {
   switch (status) {
     case 'completed':
       return {
-        icon: 'bg-green-500 border-green-500 text-white',
-        line: 'bg-green-500',
-        bg: 'bg-green-500/10',
+        icon: 'bg-status-success border-status-success text-white',
+        line: 'bg-status-success',
+        bg: 'bg-status-success-muted',
       };
     case 'in_progress':
       return {
-        icon: 'bg-blue-500 border-blue-500 text-white animate-pulse',
+        icon: 'bg-status-info border-status-info text-white animate-pulse',
         line: 'bg-muted-foreground/30',
-        bg: 'bg-blue-500/10',
+        bg: 'bg-status-info-muted',
       };
     default:
       return {
@@ -84,7 +84,7 @@ export function HorizontalTimeline({ progress, lastUpdated }: HorizontalTimeline
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div
-              className="bg-green-500 h-2 rounded-full transition-all duration-500"
+              className="bg-status-success h-2 rounded-full transition-all duration-500"
               style={{ width: `${(completedCount / progress.length) * 100}%` }}
             />
           </div>
@@ -119,8 +119,8 @@ export function HorizontalTimeline({ progress, lastUpdated }: HorizontalTimeline
                       <span
                         className={cn(
                           'text-xs mt-2 text-center max-w-[80px] truncate',
-                          item.status === 'completed' && 'text-green-600 dark:text-green-400',
-                          item.status === 'in_progress' && 'text-blue-600 dark:text-blue-400 font-medium',
+                          item.status === 'completed' && 'text-status-success',
+                          item.status === 'in_progress' && 'text-status-info font-medium',
                           item.status === 'not_started' && 'text-muted-foreground'
                         )}
                       >
@@ -133,7 +133,7 @@ export function HorizontalTimeline({ progress, lastUpdated }: HorizontalTimeline
                       <p className="font-medium">{item.stage?.display_name}</p>
                       <p className="text-muted-foreground">{item.stage?.description}</p>
                       {item.completed_at && (
-                        <p className="text-xs mt-1 text-green-600">
+                        <p className="text-xs mt-1 text-status-success">
                           Completed {formatDistanceToNow(new Date(item.completed_at))} ago
                         </p>
                       )}

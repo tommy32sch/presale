@@ -1,56 +1,47 @@
-# How to Get Your Shopify Admin API Token
+# Quick Reference: Get Shopify Access Token
 
-Follow these steps to get your Shopify Admin API access token:
+## The Fast Way (Client Credentials)
 
-## Step 1: Enable Custom App Development (if needed)
+Run this command, replacing YOUR_CLIENT_ID and YOUR_CLIENT_SECRET:
 
-1. Log in to your Shopify admin panel
-2. Go to **Settings** (bottom left)
-3. Click **Apps and sales channels**
-4. Click **Develop apps** (top right)
-5. If you see a button that says "Allow custom app development", click it and confirm
-
-## Step 2: Create a Custom App
-
-1. Click **Create an app** button
-2. Enter an app name: **Presale Order Tracker**
-3. Click **Create app**
-
-## Step 3: Configure API Scopes
-
-1. Click **Configure Admin API scopes**
-2. Scroll down and find these scopes (use Ctrl+F/Cmd+F to search):
-   - ✅ `read_orders` - Read orders
-   - ✅ `read_customers` - Read customers
-3. Check both boxes
-4. Click **Save** at the top right
-
-## Step 4: Install the App
-
-1. Click the **API credentials** tab
-2. Click **Install app**
-3. Click **Install** to confirm
-
-## Step 5: Get Your Access Token
-
-1. After installation, you'll see an "Admin API access token" section
-2. Click **Reveal token once**
-3. **IMPORTANT**: Copy this token immediately and save it somewhere safe
-4. It will look like: `shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
-5. You can only see this token once - if you lose it, you'll need to uninstall and reinstall the app
-
-## What to do with the token:
-
-Paste it into your `.env.local` file:
-
-```env
-SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-SHOPIFY_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-SHOPIFY_WEBHOOK_SECRET=any_random_string_here
+```bash
+curl -X POST "https://978sp6-1n.myshopify.com/admin/oauth/access_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"
 ```
 
-## Notes:
+## Your Credentials
 
-- The token never expires unless you uninstall the app
-- Keep this token secure - don't share it or commit it to git
-- If you need to regenerate it, you'll have to uninstall and reinstall the custom app
+- **Store Domain**: `978sp6-1n.myshopify.com`
+- **Client ID**: `YOUR_CLIENT_ID` (see .env.local)
+- **Client Secret**: `YOUR_CLIENT_SECRET` (see .env.local)
+
+## Full Command (Ready to Run)
+
+```bash
+curl -X POST "https://978sp6-1n.myshopify.com/admin/oauth/access_token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"
+```
+
+## Response
+
+```json
+{
+  "access_token": "shpat_xxxxxxxxxxxxxxxxxxxxx",
+  "scope": "read_customers,read_orders",
+  "expires_in": 86399
+}
+```
+
+## Important
+
+- Token expires in **~24 hours** (86399 seconds)
+- After getting a new token, update:
+  1. `.env.local` locally
+  2. Vercel: `npx vercel env add SHOPIFY_ACCESS_TOKEN production`
+  3. Redeploy: `npx vercel --prod`
+
+## Full Setup Guide
+
+See [SHOPIFY_SETUP.md](./SHOPIFY_SETUP.md) for complete documentation.
