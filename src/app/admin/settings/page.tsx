@@ -17,6 +17,7 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
+  Key,
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
@@ -31,9 +32,12 @@ export default function AdminSettingsPage() {
   // Shopify state
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifyLoading, setShopifyLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [showManualToken, setShowManualToken] = useState(false);
+  const [manualToken, setManualToken] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
 
   useEffect(() => {
-    // Fetch settings
     fetch('/api/admin/settings')
       .then((res) => res.json())
       .then((data) => {
@@ -48,7 +52,6 @@ export default function AdminSettingsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Fetch Shopify connection status
     fetch('/api/admin/shopify/sync')
       .then((res) => res.json())
       .then((data) => {
@@ -81,6 +84,55 @@ export default function AdminSettingsPage() {
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleShopifyConnect = () => {
+    window.location.href = '/api/admin/shopify/auth';
+  };
+
+  const handleSaveManualToken = async () => {
+    if (!manualToken.trim()) {
+      toast.error('Please enter an access token');
+      return;
+    }
+    setSavingToken(true);
+    try {
+      const res = await fetch('/api/admin/shopify/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: manualToken.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Shopify connected successfully!');
+        setShopifyConnected(true);
+        setShowManualToken(false);
+        setManualToken('');
+      } else {
+        toast.error(data.error || 'Failed to save token');
+      }
+    } catch {
+      toast.error('Failed to save token');
+    } finally {
+      setSavingToken(false);
+    }
+  };
+
+  const handleShopifySync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/shopify/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Synced ${data.imported} orders (${data.skipped} skipped)`);
+      } else {
+        toast.error(data.error || 'Sync failed');
+      }
+    } catch {
+      toast.error('Sync failed');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -218,38 +270,74 @@ export default function AdminSettingsPage() {
             Manage your Shopify store integration for automatic order syncing.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {shopifyLoading ? (
             <Skeleton className="h-8 w-48" />
-          ) : (
-            <div className="flex items-center justify-between">
+          ) : shopifyConnected ? (
+            <>
               <div className="flex items-center gap-2">
-                {shopifyConnected ? (
+                <CheckCircle className="h-5 w-5 text-status-success" />
+                <span className="font-medium">Connected</span>
+                <Badge variant="success">Active</Badge>
+              </div>
+              <Button onClick={handleShopifySync} disabled={syncing} variant="outline" size="sm">
+                {syncing ? (
                   <>
-                    <CheckCircle className="h-5 w-5 text-status-success" />
-                    <span className="font-medium">Connected</span>
-                    <Badge variant="success">Active</Badge>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing...
                   </>
                 ) : (
                   <>
-                    <XCircle className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Not Connected</span>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync Orders Now
                   </>
                 )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Not Connected</span>
               </div>
-              {shopifyConnected ? (
-                <Button variant="outline" size="sm" asChild>
-                  <a href="/admin">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Sync from Dashboard
-                  </a>
-                </Button>
+              {showManualToken ? (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Access Token</Label>
+                    <Input
+                      type="password"
+                      placeholder="shpat_xxxxx..."
+                      value={manualToken}
+                      onChange={(e) => setManualToken(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveManualToken} disabled={savingToken} size="sm" className="flex-1">
+                      {savingToken ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Key className="h-4 w-4 mr-2" />
+                      )}
+                      Save Token
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowManualToken(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               ) : (
-                <Button size="sm" asChild>
-                  <a href="/admin">Connect from Dashboard</a>
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={handleShopifyConnect} size="sm">
+                    <Store className="h-4 w-4 mr-2" />
+                    Connect Shopify
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowManualToken(true)}>
+                    <Key className="h-4 w-4 mr-2" />
+                    Enter Token
+                  </Button>
+                </div>
               )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
