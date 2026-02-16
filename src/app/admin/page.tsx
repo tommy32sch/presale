@@ -44,11 +44,11 @@ export default function AdminDashboardPage() {
         <Skeleton className="h-[88px] w-full rounded-2xl" />
         <Skeleton className="h-[88px] w-full rounded-2xl" />
         <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-[120px] rounded-2xl" />
-          <Skeleton className="h-[120px] rounded-2xl" />
+          <Skeleton className="h-[130px] rounded-2xl" />
+          <Skeleton className="h-[130px] rounded-2xl" />
         </div>
-        <Skeleton className="h-[160px] w-full rounded-2xl" />
-        <Skeleton className="h-[64px] w-full rounded-2xl" />
+        <Skeleton className="h-[180px] w-full rounded-2xl" />
+        <Skeleton className="h-[68px] w-full rounded-2xl" />
       </div>
     );
   }
@@ -57,7 +57,6 @@ export default function AdminDashboardPage() {
   const today = stats?.todayStatus;
   const hasDelays = today?.hasDelayedOrders;
 
-  // Find the dominant stage (most orders)
   const dominantStage = stats?.stageDistribution?.reduce(
     (max, seg) => (seg.count > max.count ? seg : max),
     { displayName: '', count: 0, percentage: 0 } as { displayName: string; count: number; percentage: number }
@@ -66,12 +65,14 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* Today's Status */}
-      <Card className={`rounded-2xl border-0 ${hasDelays ? 'bg-destructive/8 dark:bg-destructive/10' : 'bg-status-success-muted'}`}>
+      <Card className={`rounded-2xl card-tinted border-0 transition-transform duration-200 ${
+        hasDelays ? 'bg-destructive/8 dark:bg-destructive/10' : 'bg-status-success-muted'
+      }`}>
         <CardContent className="py-5 flex items-center gap-4">
-          <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+          <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
             hasDelays
-              ? 'bg-destructive/15 dark:bg-destructive/20'
-              : 'bg-status-success/15 dark:bg-status-success/20'
+              ? 'bg-destructive/15 dark:bg-destructive/25 ring-1 ring-destructive/20'
+              : 'bg-status-success/15 dark:bg-status-success/25 ring-1 ring-status-success/20'
           }`}>
             {hasDelays ? (
               <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -80,7 +81,7 @@ export default function AdminDashboardPage() {
             )}
           </div>
           <div>
-            <p className="text-sm font-semibold">Today&apos;s Status</p>
+            <p className="text-sm font-semibold tracking-tight">Today&apos;s Status</p>
             <p className="text-sm font-medium mt-0.5">
               {hasDelays
                 ? `${today.delayedCount} order${today.delayedCount !== 1 ? 's' : ''} behind schedule`
@@ -95,7 +96,7 @@ export default function AdminDashboardPage() {
       </Card>
 
       {/* Production Health */}
-      <Card className={`rounded-2xl border-0 ${
+      <Card className={`rounded-2xl card-tinted border-0 transition-transform duration-200 ${
         health?.healthStatus === 'critical'
           ? 'bg-destructive/8 dark:bg-destructive/10'
           : health?.healthStatus === 'warning'
@@ -103,12 +104,12 @@ export default function AdminDashboardPage() {
             : 'bg-status-success-muted'
       }`}>
         <CardContent className="py-5 flex items-center gap-4">
-          <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+          <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
             health?.healthStatus === 'critical'
-              ? 'bg-destructive/15 dark:bg-destructive/20'
+              ? 'bg-destructive/15 dark:bg-destructive/25 ring-1 ring-destructive/20'
               : health?.healthStatus === 'warning'
-                ? 'bg-status-warning/15 dark:bg-status-warning/20'
-                : 'bg-status-success/15 dark:bg-status-success/20'
+                ? 'bg-status-warning/15 dark:bg-status-warning/25 ring-1 ring-status-warning/20'
+                : 'bg-status-success/15 dark:bg-status-success/25 ring-1 ring-status-success/20'
           }`}>
             {health?.healthStatus === 'critical' ? (
               <XCircle className="h-5 w-5 text-destructive" />
@@ -119,7 +120,7 @@ export default function AdminDashboardPage() {
             )}
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">Production Health</p>
+            <p className="text-sm font-semibold tracking-tight">Production Health</p>
             <p className="text-sm font-medium mt-0.5">
               {health?.healthStatus === 'healthy' || !health?.totalActive
                 ? 'No delays detected'
@@ -141,38 +142,38 @@ export default function AdminDashboardPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Orders</h2>
         <div className="grid grid-cols-2 gap-3">
           <Link href="/admin/orders" className="block group">
-            <Card className="rounded-2xl border border-border/60 transition-all hover:shadow-lg hover:border-primary/30 cursor-pointer group-hover:premium-glow overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-2xl" />
+            <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200 cursor-pointer overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
               <CardContent className="py-5 pl-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-medium text-muted-foreground">Total Orders</span>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 dark:bg-primary/15 flex items-center justify-center shadow-sm ring-1 ring-primary/10">
                     <ShoppingCart className="h-4 w-4 text-primary" />
                   </div>
                 </div>
                 <div className="text-3xl font-bold tracking-tight">{stats?.totalOrders ?? 0}</div>
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-[11px] text-muted-foreground">All orders</p>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/admin/orders?status=active" className="block group">
-            <Card className="rounded-2xl border border-border/60 transition-all hover:shadow-lg hover:border-status-info/30 cursor-pointer overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-1 h-full bg-status-info rounded-l-2xl" />
+            <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200 cursor-pointer overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-1 h-full bg-status-info" />
               <CardContent className="py-5 pl-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-medium text-muted-foreground">Active Orders</span>
-                  <div className="h-8 w-8 rounded-lg bg-status-info/10 dark:bg-status-info/15 flex items-center justify-center">
+                  <div className="h-9 w-9 rounded-xl bg-status-info/10 dark:bg-status-info/15 flex items-center justify-center shadow-sm ring-1 ring-status-info/10">
                     <Package className="h-4 w-4 text-status-info" />
                   </div>
                 </div>
                 <div className="text-3xl font-bold tracking-tight">{stats?.activeOrders ?? 0}</div>
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-[11px] text-muted-foreground">In production</p>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-status-info transition-colors" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-status-info group-hover:translate-x-0.5 transition-all" />
                 </div>
               </CardContent>
             </Card>
@@ -181,10 +182,10 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Orders by Stage */}
-      <Card className="rounded-2xl">
+      <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200">
         <CardContent className="py-5 space-y-4">
           <div>
-            <p className="text-sm font-semibold">Orders by Stage</p>
+            <p className="text-sm font-semibold tracking-tight">Orders by Stage</p>
             {dominantStage && dominantStage.count > 0 && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 <span className="font-semibold text-foreground">{dominantStage.percentage}%</span>{' '}
@@ -199,14 +200,12 @@ export default function AdminDashboardPage() {
             <>
               {/* Segmented bar */}
               <TooltipProvider>
-                <div className="flex h-3 w-full rounded-full overflow-hidden bg-muted/50">
+                <div className="flex h-3.5 w-full rounded-full overflow-hidden bg-muted/50 shadow-inner">
                   {stats.stageDistribution.map((seg, i) => (
                     <Tooltip key={seg.stageId}>
                       <TooltipTrigger asChild>
                         <div
-                          className={`${seg.color} transition-all hover:brightness-110 cursor-default ${
-                            i === 0 ? 'rounded-l-full' : ''
-                          } ${i === stats.stageDistribution.length - 1 ? 'rounded-r-full' : ''}`}
+                          className={`${seg.color} transition-all hover:brightness-110 cursor-default`}
                           style={{ width: `${seg.percentage}%`, minWidth: seg.percentage > 0 ? '6px' : '0' }}
                         />
                       </TooltipTrigger>
@@ -223,9 +222,9 @@ export default function AdminDashboardPage() {
               <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                 {stats.stageDistribution.map((seg) => (
                   <div key={seg.stageId} className="flex items-center gap-1.5">
-                    <span className={`h-2 w-2 rounded-full ${seg.color}`} />
+                    <span className={`h-2.5 w-2.5 rounded-full ${seg.color} shadow-sm ring-1 ring-black/5 dark:ring-white/10`} />
                     <span className="text-[11px] text-muted-foreground">{seg.displayName}</span>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-semibold">
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-semibold shadow-sm">
                       {seg.count}
                     </Badge>
                   </div>
@@ -247,13 +246,13 @@ export default function AdminDashboardPage() {
 
       {/* Bottom summary */}
       <Link href="/admin/orders?status=delayed" className="block group">
-        <Card className="rounded-2xl border border-border/60 transition-all hover:shadow-md cursor-pointer">
+        <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200 cursor-pointer">
           <CardContent className="py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+              <div className={`h-9 w-9 rounded-full flex items-center justify-center shadow-sm ${
                 hasDelays
-                  ? 'bg-status-warning/15 dark:bg-status-warning/20'
-                  : 'bg-status-success/10 dark:bg-status-success/15'
+                  ? 'bg-status-warning/15 dark:bg-status-warning/20 ring-1 ring-status-warning/20'
+                  : 'bg-status-success/10 dark:bg-status-success/15 ring-1 ring-status-success/15'
               }`}>
                 {hasDelays ? (
                   <AlertTriangle className="h-4 w-4 text-status-warning" />
