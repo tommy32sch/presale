@@ -22,13 +22,17 @@ export async function GET(request: NextRequest) {
     const supabase = db();
 
     // Fetch app settings for production target
-    const { data: appSettings } = await supabase
-      .from('app_settings')
-      .select('production_target_days')
-      .eq('id', 'default')
-      .single();
-
-    const targetDays = appSettings?.production_target_days || 30;
+    let targetDays = 30;
+    try {
+      const { data: appSettings } = await supabase
+        .from('app_settings')
+        .select('production_target_days')
+        .eq('id', 'default')
+        .single();
+      targetDays = appSettings?.production_target_days || 30;
+    } catch {
+      // Table may not exist yet — use default
+    }
 
     // Get all stages
     const { data: stages } = await supabase
