@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* Today's Status */}
-      <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200">
+      <Card className="rounded-2xl card-elevated transition-transform duration-200">
         <CardContent className="py-5 flex items-center gap-4">
           <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
             hasDelays
@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
       </Card>
 
       {/* Production Health */}
-      <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200">
+      <Card className="rounded-2xl card-elevated transition-transform duration-200">
         <CardContent className="py-5 flex items-center gap-4">
           <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
             health?.healthStatus === 'critical'
@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Orders</h2>
         <div className="grid grid-cols-2 gap-3">
           <Link href="/admin/orders" className="block group">
-            <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200 cursor-pointer overflow-hidden relative">
+            <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
               <CardContent className="py-5 pl-5">
                 <div className="flex items-center justify-between mb-3">
@@ -153,7 +153,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           <Link href="/admin/orders?status=active" className="block group">
-            <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200 cursor-pointer overflow-hidden relative">
+            <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-status-info" />
               <CardContent className="py-5 pl-5">
                 <div className="flex items-center justify-between mb-3">
@@ -174,7 +174,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Orders by Stage */}
-      <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200">
+      <Card className="rounded-2xl card-elevated transition-transform duration-200">
         <CardContent className="py-5 space-y-4">
           <div>
             <p className="text-sm font-semibold tracking-tight">Orders by Stage</p>
@@ -238,7 +238,7 @@ export default function AdminDashboardPage() {
 
       {/* Bottom summary */}
       <Link href="/admin/orders?status=delayed" className="block group">
-        <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200 cursor-pointer">
+        <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer">
           <CardContent className="py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`h-9 w-9 rounded-full flex items-center justify-center shadow-sm ${
