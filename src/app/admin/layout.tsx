@@ -145,7 +145,7 @@ export default function AdminLayout({
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b sticky top-0 bg-background/80 backdrop-blur-md z-50">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 relative">
           <div className="flex items-center gap-4">
             {/* Mobile hamburger — for accessing all pages */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -158,7 +158,7 @@ export default function AdminLayout({
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Admin Menu
+                    Ivory Son
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 mt-4 px-2">
@@ -183,10 +183,12 @@ export default function AdminLayout({
 
             <Link href="/admin" className="flex items-center gap-2">
               <Package className="h-6 w-6" />
-              <span className="font-bold text-lg hidden sm:inline">Admin</span>
-              <span className="font-bold text-lg sm:hidden">Admin</span>
+              <span className="font-bold text-lg hidden md:inline">Ivory Son</span>
             </Link>
           </div>
+
+          {/* Center title — mobile only */}
+          <span className="font-bold text-lg md:hidden absolute left-1/2 -translate-x-1/2">Ivory Son</span>
 
           {/* Desktop navigation */}
           <nav className="hidden md:flex items-center gap-1">
