@@ -65,9 +65,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* Today's Status */}
-      <Card className={`rounded-2xl card-tinted border-0 transition-transform duration-200 ${
-        hasDelays ? 'bg-destructive/8 dark:bg-destructive/10' : 'bg-status-success-muted'
-      }`}>
+      <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200">
         <CardContent className="py-5 flex items-center gap-4">
           <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
             hasDelays
@@ -96,13 +94,7 @@ export default function AdminDashboardPage() {
       </Card>
 
       {/* Production Health */}
-      <Card className={`rounded-2xl card-tinted border-0 transition-transform duration-200 ${
-        health?.healthStatus === 'critical'
-          ? 'bg-destructive/8 dark:bg-destructive/10'
-          : health?.healthStatus === 'warning'
-            ? 'bg-status-warning-muted'
-            : 'bg-status-success-muted'
-      }`}>
+      <Card className="rounded-2xl card-elevated border-0 transition-transform duration-200">
         <CardContent className="py-5 flex items-center gap-4">
           <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
             health?.healthStatus === 'critical'
