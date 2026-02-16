@@ -174,12 +174,19 @@ export default function AdminSettingsPage() {
                 min={1}
                 max={365}
                 value={settings.production_target_days}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = e.target.value;
                   setSettings((prev) => ({
                     ...prev,
-                    production_target_days: parseInt(e.target.value) || 1,
-                  }))
-                }
+                    production_target_days: val === '' ? ('' as unknown as number) : parseInt(val),
+                  }));
+                }}
+                onBlur={() => {
+                  setSettings((prev) => ({
+                    ...prev,
+                    production_target_days: prev.production_target_days || 1,
+                  }));
+                }}
                 className="max-w-[120px]"
               />
             </div>
