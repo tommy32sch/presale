@@ -215,56 +215,69 @@
     box-shadow: 0 0 20px oklch(0.68 0.16 265 / 0.12);
   }
 
-  /* 3D elevated card */
+  /* 3D elevated card — physical floating panel */
   .card-elevated {
-    border: 1px solid oklch(0.88 0.005 265);
+    background-image: linear-gradient(
+      to bottom,
+      oklch(1 0 0 / 0.03),
+      transparent 40%
+    );
+    border: 1px solid oklch(0 0 0 / 0.08);
+    border-top-color: oklch(1 0 0 / 0.12);
+    border-bottom-color: oklch(0 0 0 / 0.12);
     box-shadow:
-      0 1px 0 0 oklch(1 0 0 / 0.06) inset,
-      0 -1px 0 0 oklch(0 0 0 / 0.04) inset,
-      0 2px 4px -1px oklch(0 0 0 / 0.06),
-      0 6px 12px -2px oklch(0 0 0 / 0.08);
+      /* top edge highlight */
+      0 1px 0 0 oklch(1 0 0 / 0.08) inset,
+      /* bottom edge shadow */
+      0 -1px 0 0 oklch(0 0 0 / 0.06) inset,
+      /* close shadow (sharp edge) */
+      0 1px 2px 0 oklch(0 0 0 / 0.05),
+      /* medium shadow (depth) */
+      0 4px 8px -2px oklch(0 0 0 / 0.08),
+      /* far shadow (ambient) */
+      0 12px 24px -4px oklch(0 0 0 / 0.1);
   }
   .card-elevated:hover {
+    border-top-color: oklch(1 0 0 / 0.16);
     box-shadow:
-      0 1px 0 0 oklch(1 0 0 / 0.08) inset,
-      0 -1px 0 0 oklch(0 0 0 / 0.04) inset,
-      0 4px 8px -2px oklch(0 0 0 / 0.08),
-      0 12px 24px -4px oklch(0 0 0 / 0.12);
+      0 1px 0 0 oklch(1 0 0 / 0.12) inset,
+      0 -1px 0 0 oklch(0 0 0 / 0.06) inset,
+      0 2px 4px 0 oklch(0 0 0 / 0.06),
+      0 8px 16px -4px oklch(0 0 0 / 0.1),
+      0 20px 40px -8px oklch(0 0 0 / 0.12);
     transform: translateY(-1px);
   }
 
   .dark .card-elevated {
-    border: 1px solid oklch(1 0 0 / 0.08);
+    background-image: linear-gradient(
+      to bottom,
+      oklch(1 0 0 / 0.04),
+      transparent 50%,
+      oklch(0 0 0 / 0.1)
+    );
+    border: 1px solid oklch(1 0 0 / 0.06);
+    border-top-color: oklch(1 0 0 / 0.14);
+    border-bottom-color: oklch(0 0 0 / 0.4);
     box-shadow:
-      0 1px 0 0 oklch(1 0 0 / 0.05) inset,
-      0 -1px 0 0 oklch(0 0 0 / 0.3) inset,
-      0 2px 6px -1px oklch(0 0 0 / 0.4),
-      0 8px 20px -4px oklch(0 0 0 / 0.5);
+      /* bright top edge highlight */
+      0 1px 0 0 oklch(1 0 0 / 0.08) inset,
+      /* dark bottom edge */
+      0 -1px 0 0 oklch(0 0 0 / 0.5) inset,
+      /* close shadow */
+      0 1px 3px 0 oklch(0 0 0 / 0.3),
+      /* medium shadow */
+      0 6px 12px -2px oklch(0 0 0 / 0.5),
+      /* far shadow (deep) */
+      0 16px 32px -6px oklch(0 0 0 / 0.6);
   }
   .dark .card-elevated:hover {
-    border-color: oklch(1 0 0 / 0.12);
-    box-shadow:
-      0 1px 0 0 oklch(1 0 0 / 0.07) inset,
-      0 -1px 0 0 oklch(0 0 0 / 0.3) inset,
-      0 4px 10px -2px oklch(0 0 0 / 0.5),
-      0 16px 32px -6px oklch(0 0 0 / 0.6);
-    transform: translateY(-1px);
-  }
-
-  /* 3D tinted card (for status cards with colored backgrounds) */
-  .card-tinted {
-    border: 1px solid oklch(1 0 0 / 0.1);
+    border-top-color: oklch(1 0 0 / 0.18);
     box-shadow:
       0 1px 0 0 oklch(1 0 0 / 0.12) inset,
-      0 2px 4px -1px oklch(0 0 0 / 0.06),
-      0 6px 12px -2px oklch(0 0 0 / 0.08);
-  }
-  .dark .card-tinted {
-    border: 1px solid oklch(1 0 0 / 0.06);
-    box-shadow:
-      0 1px 0 0 oklch(1 0 0 / 0.08) inset,
-      0 -1px 0 0 oklch(0 0 0 / 0.2) inset,
-      0 2px 6px -1px oklch(0 0 0 / 0.3),
-      0 8px 20px -4px oklch(0 0 0 / 0.4);
+      0 -1px 0 0 oklch(0 0 0 / 0.5) inset,
+      0 2px 4px 0 oklch(0 0 0 / 0.35),
+      0 10px 20px -4px oklch(0 0 0 / 0.55),
+      0 24px 48px -8px oklch(0 0 0 / 0.65);
+    transform: translateY(-1px);
   }
 }
