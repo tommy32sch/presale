@@ -32,8 +32,11 @@ import {
   Menu,
   Home,
   LayoutGrid,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface AdminUser {
@@ -68,6 +71,7 @@ export default function AdminLayout({
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const isLoginPage = pathname === '/admin/login';
 
@@ -97,6 +101,24 @@ export default function AdminLayout({
   const handleLogout = async () => {
     await fetch('/api/admin/auth/logout', { method: 'POST' });
     router.push('/admin/login');
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/shopify/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Synced ${data.imported} orders (${data.skipped} skipped)`);
+        router.refresh();
+      } else {
+        toast.error(data.error || 'Sync failed');
+      }
+    } catch {
+      toast.error('Sync failed');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   if (isLoginPage) {
@@ -183,6 +205,19 @@ export default function AdminLayout({
           </nav>
 
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSync}
+              disabled={syncing}
+              title="Sync orders from Shopify"
+            >
+              {syncing ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-5 w-5" />
+              )}
+            </Button>
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
