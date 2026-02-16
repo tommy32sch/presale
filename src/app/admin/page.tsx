@@ -7,6 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import {
   ShoppingCart,
@@ -24,19 +30,12 @@ import {
   Clock,
   CheckCircle,
   ShoppingBag,
+  Activity,
+  Settings,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { ActivityEvent } from '@/types';
+import { DashboardStats, ActivityEvent } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
-
-interface DashboardStats {
-  totalOrders: number;
-  activeOrders: number;
-  delayedOrders: number;
-  pendingNotifications: number;
-  unreadMessages: number;
-  ordersByStage: { stage: string; count: number }[];
-}
 
 export default function AdminDashboardPage() {
   const searchParams = useSearchParams();
@@ -52,7 +51,6 @@ export default function AdminDashboardPage() {
   const [activitiesLoading, setActivitiesLoading] = useState(true);
 
   useEffect(() => {
-    // Check for Shopify connection status in URL
     const shopifyStatus = searchParams.get('shopify');
     if (shopifyStatus === 'connected') {
       toast.success('Shopify connected successfully!');
@@ -72,7 +70,6 @@ export default function AdminDashboardPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
 
-    // Fetch recent activity
     fetch('/api/admin/activity')
       .then((res) => res.json())
       .then((data) => {
@@ -83,7 +80,6 @@ export default function AdminDashboardPage() {
       .catch(console.error)
       .finally(() => setActivitiesLoading(false));
 
-    // Check Shopify connection
     fetch('/api/admin/shopify/sync')
       .then((res) => res.json())
       .then((data) => {
@@ -137,7 +133,6 @@ export default function AdminDashboardPage() {
 
       if (data.success) {
         toast.success(`Synced ${data.imported} orders (${data.skipped} skipped)`);
-        // Refresh stats
         const statsRes = await fetch('/api/admin/stats');
         const statsData = await statsRes.json();
         if (statsData.success) {
@@ -157,14 +152,22 @@ export default function AdminDashboardPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-28" />
           ))}
         </div>
+        <Skeleton className="h-40 w-full" />
       </div>
     );
   }
+
+  const health = stats?.productionHealth;
+  const today = stats?.todayStatus;
 
   return (
     <div className="space-y-6">
@@ -181,8 +184,91 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Row 1: Today's Status + Production Health */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Today's Status */}
+        <Card className={`border-l-4 ${today?.hasDelayedOrders ? 'border-l-destructive' : 'border-l-status-success'}`}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              {today?.hasDelayedOrders ? (
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-status-success" />
+              )}
+              Today&apos;s Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-lg font-semibold ${today?.hasDelayedOrders ? 'text-destructive' : 'text-status-success'}`}>
+              {today?.message || 'All orders on schedule'}
+            </p>
+            {today?.hasDelayedOrders && (
+              <Link href="/admin/orders?status=delayed">
+                <p className="text-xs text-muted-foreground mt-1 hover:underline flex items-center gap-1">
+                  View delayed orders <ArrowRight className="h-3 w-3" />
+                </p>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Production Health */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Production Health
+              </CardTitle>
+              {health && (
+                <Badge
+                  variant={
+                    health.healthStatus === 'healthy' ? 'success' :
+                    health.healthStatus === 'warning' ? 'warning' : 'destructive'
+                  }
+                >
+                  {health.healthStatus === 'healthy' ? 'Healthy' :
+                   health.healthStatus === 'warning' ? 'Warning' : 'Critical'}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {health && health.totalActive > 0 ? (
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-status-success">{health.onTrack}</p>
+                  <p className="text-xs text-muted-foreground">On Track</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-status-warning">{health.atRisk}</p>
+                  <p className="text-xs text-muted-foreground">At Risk</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-destructive">{health.behind}</p>
+                  <p className="text-xs text-muted-foreground">Behind</p>
+                </div>
+                <div className="ml-auto">
+                  <Link href="/admin/settings">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                      <Settings className="h-3 w-3 mr-1" />
+                      {health.targetDays}d target
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No active orders with payment received yet.{' '}
+                <Link href="/admin/settings" className="underline">Configure target</Link>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: Stats cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link href="/admin/orders" className="block">
           <Card className="transition-all hover:shadow-md hover:border-primary/20 cursor-pointer border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -191,9 +277,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stats?.totalOrders ?? 0}</div>
-              <p className="text-xs text-muted-foreground">
-                All orders in the system
-              </p>
+              <p className="text-xs text-muted-foreground">All orders in the system</p>
             </CardContent>
           </Card>
         </Link>
@@ -206,9 +290,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stats?.activeOrders ?? 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Currently in production
-              </p>
+              <p className="text-xs text-muted-foreground">Currently in production</p>
             </CardContent>
           </Card>
         </Link>
@@ -223,56 +305,57 @@ export default function AdminDashboardPage() {
               <div className={`text-3xl font-bold ${stats?.delayedOrders ? 'text-destructive' : ''}`}>
                 {stats?.delayedOrders ?? 0}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Require attention
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/admin/notifications" className="block">
-          <Card className={`transition-all hover:shadow-md cursor-pointer border-l-4 border-l-status-warning ${stats?.pendingNotifications ? 'border-status-warning hover:border-status-warning/80' : 'hover:border-primary/20'}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Notifications</CardTitle>
-              <Bell className={`h-4 w-4 ${stats?.pendingNotifications ? 'text-status-warning' : 'text-muted-foreground'}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold ${stats?.pendingNotifications ? 'text-status-warning' : ''}`}>
-                {stats?.pendingNotifications ?? 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Awaiting review
-              </p>
+              <p className="text-xs text-muted-foreground">Require attention</p>
             </CardContent>
           </Card>
         </Link>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Row 3: Orders by Stage segmented bar */}
+      {stats?.stageDistribution && stats.stageDistribution.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg">Orders by Stage</CardTitle>
-            <CardDescription>Distribution across production stages</CardDescription>
+            <CardDescription>Distribution of {stats.activeOrders} active orders across production stages</CardDescription>
           </CardHeader>
-          <CardContent>
-            {stats?.ordersByStage && stats.ordersByStage.length > 0 ? (
-              <div className="space-y-1">
-                {stats.ordersByStage.map((item) => (
-                  <Link key={item.stage} href="/admin/orders" className="block">
-                    <div className="flex items-center justify-between p-2 -mx-2 rounded-md transition-colors hover:bg-muted cursor-pointer">
-                      <span className="text-sm">{item.stage}</span>
-                      <Badge variant="secondary">{item.count}</Badge>
-                    </div>
-                  </Link>
+          <CardContent className="space-y-4">
+            {/* Segmented bar */}
+            <TooltipProvider>
+              <div className="flex h-6 w-full rounded-full overflow-hidden">
+                {stats.stageDistribution.map((seg) => (
+                  <Tooltip key={seg.stageId}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`${seg.color} transition-all hover:opacity-80 cursor-default`}
+                        style={{ width: `${seg.percentage}%`, minWidth: seg.percentage > 0 ? '4px' : '0' }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">{seg.displayName}</p>
+                      <p className="text-xs">{seg.count} order{seg.count !== 1 ? 's' : ''} ({seg.percentage}%)</p>
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No orders yet</p>
-            )}
+            </TooltipProvider>
+
+            {/* Legend */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-2">
+              {stats.stageDistribution.map((seg) => (
+                <div key={seg.stageId} className="flex items-center gap-2">
+                  <div className={`h-3 w-3 rounded-sm ${seg.color} shrink-0`} />
+                  <span className="text-xs text-muted-foreground truncate">{seg.displayName}</span>
+                  <span className="text-xs font-medium ml-auto">{seg.count}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
+      )}
 
+      {/* Row 4: Quick Actions + Recent Activity + Shopify */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Quick Actions</CardTitle>
@@ -294,190 +377,171 @@ export default function AdminDashboardPage() {
             <Link href="/admin/notifications">
               <Button variant="outline" className="w-full justify-between">
                 Review Notifications
+                {(stats?.pendingNotifications ?? 0) > 0 && (
+                  <Badge variant="warning" className="ml-2">{stats?.pendingNotifications}</Badge>
+                )}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/admin/messages">
+              <Button variant="outline" className="w-full justify-between">
+                Messages
+                {(stats?.unreadMessages ?? 0) > 0 && (
+                  <Badge variant="default" className="ml-2">{stats?.unreadMessages}</Badge>
+                )}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </CardContent>
         </Card>
 
-        <Link href="/admin/messages" className="block">
-          <Card className="transition-all hover:shadow-md hover:border-primary/20 cursor-pointer">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Messages
-              </CardTitle>
-              <CardDescription>Customer inquiries</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {stats?.unreadMessages ? (
-                <div>
-                  <p className="text-2xl font-bold text-primary">{stats.unreadMessages}</p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    unread messages <ArrowRight className="h-3 w-3" />
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No unread messages</p>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
-          <CardDescription>Latest updates across all orders</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {activitiesLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : activities.length > 0 ? (
-            <div className="space-y-1">
-              {activities.map((activity) => (
-                <Link
-                  key={activity.id}
-                  href={`/admin/orders/${activity.orderId}`}
-                  className="block"
-                >
-                  <div className="flex items-start gap-3 p-2 -mx-2 rounded-md transition-colors hover:bg-muted cursor-pointer">
-                    <div className="mt-0.5">
-                      {activity.type === 'order_created' && (
-                        <ShoppingBag className="h-4 w-4 text-status-pending" />
-                      )}
-                      {activity.type === 'stage_started' && (
-                        <Clock className="h-4 w-4 text-status-info" />
-                      )}
-                      {activity.type === 'stage_completed' && (
-                        <CheckCircle className="h-4 w-4 text-status-success" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
+            <CardDescription>Latest updates</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {activitiesLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : activities.length > 0 ? (
+              <div className="space-y-1">
+                {activities.slice(0, 6).map((activity) => (
+                  <Link
+                    key={activity.id}
+                    href={`/admin/orders/${activity.orderId}`}
+                    className="block"
+                  >
+                    <div className="flex items-start gap-2 p-1.5 -mx-1.5 rounded-md transition-colors hover:bg-muted cursor-pointer">
+                      <div className="mt-0.5">
                         {activity.type === 'order_created' && (
-                          <>
-                            <span className="font-medium">{activity.orderNumber}</span>
-                            {' '}created for {activity.customerName}
-                          </>
+                          <ShoppingBag className="h-3.5 w-3.5 text-status-pending" />
                         )}
                         {activity.type === 'stage_started' && (
-                          <>
-                            <span className="font-medium">{activity.orderNumber}</span>
-                            {' '}started{' '}
-                            <span className="font-medium">{activity.stageName}</span>
-                          </>
+                          <Clock className="h-3.5 w-3.5 text-status-info" />
                         )}
                         {activity.type === 'stage_completed' && (
-                          <>
-                            <span className="font-medium">{activity.orderNumber}</span>
-                            {' '}completed{' '}
-                            <span className="font-medium">{activity.stageName}</span>
-                          </>
+                          <CheckCircle className="h-3.5 w-3.5 text-status-success" />
                         )}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(activity.timestamp))} ago
-                      </p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs">
+                          {activity.type === 'order_created' && (
+                            <>
+                              <span className="font-medium">{activity.orderNumber}</span>
+                              {' '}created
+                            </>
+                          )}
+                          {activity.type === 'stage_started' && (
+                            <>
+                              <span className="font-medium">{activity.orderNumber}</span>
+                              {' '}started{' '}
+                              <span className="font-medium">{activity.stageName}</span>
+                            </>
+                          )}
+                          {activity.type === 'stage_completed' && (
+                            <>
+                              <span className="font-medium">{activity.orderNumber}</span>
+                              {' '}completed{' '}
+                              <span className="font-medium">{activity.stageName}</span>
+                            </>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(activity.timestamp))} ago
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No recent activity</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Shopify Integration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Store className="h-5 w-5" />
-            Shopify Integration
-          </CardTitle>
-          <CardDescription>
-            Sync orders automatically from your Shopify store
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {shopifyLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : shopifyConnected ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-status-success">
-                <Check className="h-4 w-4" />
-                <span className="text-sm font-medium">Connected to Shopify</span>
+                  </Link>
+                ))}
               </div>
-              <Button onClick={handleShopifySync} disabled={syncing} className="w-full">
-                {syncing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sync Orders from Shopify
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Connect your Shopify store to automatically import orders.
-              </p>
-              {showManualToken ? (
-                <div className="space-y-3">
+            ) : (
+              <p className="text-sm text-muted-foreground">No recent activity</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Shopify Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Shopify
+            </CardTitle>
+            <CardDescription>Sync orders from your store</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {shopifyLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : shopifyConnected ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-status-success">
+                  <Check className="h-4 w-4" />
+                  <span className="text-sm font-medium">Connected</span>
+                </div>
+                <Button onClick={handleShopifySync} disabled={syncing} className="w-full" size="sm">
+                  {syncing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Sync Orders
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Connect to import orders automatically.
+                </p>
+                {showManualToken ? (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Access Token</label>
                     <Input
                       type="password"
                       placeholder="shpat_xxxxx..."
                       value={manualToken}
                       onChange={(e) => setManualToken(e.target.value)}
+                      className="text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Get this from Shopify CLI: run `shopify app dev` in your terminal
-                    </p>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveManualToken} disabled={savingToken} size="sm" className="flex-1">
+                        {savingToken ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Key className="mr-2 h-4 w-4" />
+                        )}
+                        Save
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setShowManualToken(false)}>
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleSaveManualToken} disabled={savingToken} className="flex-1">
-                      {savingToken ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Key className="mr-2 h-4 w-4" />
-                      )}
-                      Save Token
+                ) : (
+                  <div className="space-y-2">
+                    <Button onClick={handleShopifyConnect} className="w-full" size="sm">
+                      <Store className="mr-2 h-4 w-4" />
+                      Connect Shopify
                     </Button>
-                    <Button variant="outline" onClick={() => setShowManualToken(false)}>
-                      Cancel
+                    <Button variant="outline" size="sm" onClick={() => setShowManualToken(true)} className="w-full">
+                      <Key className="mr-2 h-4 w-4" />
+                      Enter Token
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Button onClick={handleShopifyConnect} className="w-full">
-                    <Store className="mr-2 h-4 w-4" />
-                    Connect Shopify
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowManualToken(true)} className="w-full">
-                    <Key className="mr-2 h-4 w-4" />
-                    Enter Access Token Manually
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
   Image,
   Bell,
   MessageSquare,
+  Settings,
   LogOut,
   User,
   Menu,
@@ -45,6 +46,7 @@ const navItems = [
   { href: '/admin/photos', label: 'Photos', icon: Image },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function AdminLayout({

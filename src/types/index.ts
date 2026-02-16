@@ -159,6 +159,35 @@ export interface CSVImportResult {
   errors: string[];
 }
 
+// App settings
+export interface AppSettings {
+  id: string;
+  production_target_days: number;
+  notify_on_stage_change: boolean;
+  notify_on_delay: boolean;
+  updated_at: string;
+}
+
+// Production health
+export interface ProductionHealthStats {
+  targetDays: number;
+  onTrack: number;
+  atRisk: number;
+  behind: number;
+  totalActive: number;
+  healthStatus: 'healthy' | 'warning' | 'critical';
+}
+
+// Stage distribution for segmented bar
+export interface StageDistribution {
+  stageId: number;
+  stageName: string;
+  displayName: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
 // Dashboard stats
 export interface DashboardStats {
   totalOrders: number;
@@ -167,6 +196,13 @@ export interface DashboardStats {
   pendingNotifications: number;
   unreadMessages: number;
   ordersByStage: { stage: string; count: number }[];
+  stageDistribution: StageDistribution[];
+  productionHealth: ProductionHealthStats;
+  todayStatus: {
+    hasDelayedOrders: boolean;
+    delayedCount: number;
+    message: string;
+  };
 }
 
 // Activity feed
