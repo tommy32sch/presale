@@ -136,32 +136,25 @@ export default function AdminDashboardPage() {
           <Link href="/admin/orders" className="block group">
             <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-              <CardContent className="py-3 pl-5 pr-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-muted-foreground">Total Orders</span>
-                  <div className="h-7 w-7 rounded-lg bg-primary/10 dark:bg-primary/15 flex items-center justify-center ring-1 ring-primary/10">
-                    <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+              <CardContent className="py-2.5 pl-5 pr-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Total Orders</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold tracking-tighter">{stats?.totalOrders ?? 0}</span>
+                      {(stats?.newTodayTotal ?? 0) > 0 && (
+                        <span className="text-[10px] font-medium text-status-success">+{stats!.newTodayTotal}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold tracking-tighter">{stats?.totalOrders ?? 0}</span>
-                    {(stats?.newTodayTotal ?? 0) > 0 && (
-                      <span className="text-[11px] font-medium text-status-success">+{stats!.newTodayTotal}</span>
-                    )}
-                  </div>
-                  <svg width="48" height="20" viewBox="0 0 48 20" fill="none" className="text-status-success shrink-0">
-                    <polyline points="0,16 8,13 16,15 24,10 32,11 40,6 48,3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <svg width="56" height="24" viewBox="0 0 56 24" fill="none" className="text-status-success shrink-0">
+                    <polyline points="0,18 9,15 18,17 28,11 37,13 47,7 56,3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                     <linearGradient id="sparkGradTotal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
                       <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
                     </linearGradient>
-                    <polygon points="0,16 8,13 16,15 24,10 32,11 40,6 48,3 48,20 0,20" fill="url(#sparkGradTotal)" />
+                    <polygon points="0,18 9,15 18,17 28,11 37,13 47,7 56,3 56,24 0,24" fill="url(#sparkGradTotal)" />
                   </svg>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <p className="text-[10px] text-muted-foreground">All orders</p>
-                  <ChevronRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
               </CardContent>
             </Card>
@@ -170,32 +163,25 @@ export default function AdminDashboardPage() {
           <Link href="/admin/orders?status=active" className="block group">
             <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-status-info" />
-              <CardContent className="py-3 pl-5 pr-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-muted-foreground">Active Orders</span>
-                  <div className="h-7 w-7 rounded-lg bg-status-info/10 dark:bg-status-info/15 flex items-center justify-center ring-1 ring-status-info/10">
-                    <Package className="h-3.5 w-3.5 text-status-info" />
+              <CardContent className="py-2.5 pl-5 pr-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-muted-foreground mb-0.5">Active Orders</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold tracking-tighter">{stats?.activeOrders ?? 0}</span>
+                      {(stats?.newTodayTotal ?? 0) > 0 && (
+                        <span className="text-[10px] font-medium text-status-info">+{stats!.newTodayTotal}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold tracking-tighter">{stats?.activeOrders ?? 0}</span>
-                    {(stats?.newTodayTotal ?? 0) > 0 && (
-                      <span className="text-[11px] font-medium text-status-info">+{stats!.newTodayTotal}</span>
-                    )}
-                  </div>
-                  <svg width="48" height="20" viewBox="0 0 48 20" fill="none" className="text-status-info shrink-0">
-                    <polyline points="0,14 8,11 16,13 24,8 32,10 40,5 48,2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <svg width="56" height="24" viewBox="0 0 56 24" fill="none" className="text-status-info shrink-0">
+                    <polyline points="0,16 9,13 18,15 28,9 37,11 47,5 56,2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                     <linearGradient id="sparkGradActive" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
                       <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
                     </linearGradient>
-                    <polygon points="0,14 8,11 16,13 24,8 32,10 40,5 48,2 48,20 0,20" fill="url(#sparkGradActive)" />
+                    <polygon points="0,16 9,13 18,15 28,9 37,11 47,5 56,2 56,24 0,24" fill="url(#sparkGradActive)" />
                   </svg>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <p className="text-[10px] text-muted-foreground">In production</p>
-                  <ChevronRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-status-info group-hover:translate-x-0.5 transition-all" />
                 </div>
               </CardContent>
             </Card>
