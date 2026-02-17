@@ -25,6 +25,7 @@ import { DashboardStats } from '@/types';
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -32,11 +33,22 @@ export default function AdminDashboardPage() {
       .then((data) => {
         if (data.success) {
           setStats(data.stats);
+          setLastUpdated(new Date());
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const formatUpdatedAgo = () => {
+    if (!lastUpdated) return '';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 60) return 'Updated just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Updated ${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `Updated ${hours}h ago`;
+  };
 
   if (loading) {
     return (
@@ -146,6 +158,7 @@ export default function AdminDashboardPage() {
                         <span className="text-[10px] font-medium text-status-success">+{stats!.newTodayTotal}</span>
                       )}
                     </div>
+                    <p className="text-[9px] text-muted-foreground/50 mt-0.5">{formatUpdatedAgo()}</p>
                   </div>
                   <svg width="56" height="24" viewBox="0 0 56 24" fill="none" className="text-status-success shrink-0">
                     <polyline points="0,18 9,15 18,17 28,11 37,13 47,7 56,3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -173,6 +186,7 @@ export default function AdminDashboardPage() {
                         <span className="text-[10px] font-medium text-status-info">+{stats!.newTodayTotal}</span>
                       )}
                     </div>
+                    <p className="text-[9px] text-muted-foreground/50 mt-0.5">{formatUpdatedAgo()}</p>
                   </div>
                   <svg width="56" height="24" viewBox="0 0 56 24" fill="none" className="text-status-info shrink-0">
                     <polyline points="0,16 9,13 18,15 28,9 37,11 47,5 56,2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
