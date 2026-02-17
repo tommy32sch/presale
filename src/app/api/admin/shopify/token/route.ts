@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract shop name from the response
+    const shopData = await testResponse.json();
+    const shopName = shopData?.shop?.name || null;
+
     // Store the access token in the database
     const supabase = db();
 
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
         id: 'default',
         store_domain: storeDomain,
         access_token: accessToken,
+        shop_name: shopName,
         connected_at: new Date().toISOString(),
       });
 

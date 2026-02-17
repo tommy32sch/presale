@@ -69,6 +69,7 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
+  const [storeName, setStoreName] = useState<string>('Ivory Son');
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -86,6 +87,7 @@ export default function AdminLayout({
       .then((data) => {
         if (data.success) {
           setAdmin(data.admin);
+          if (data.shopName) setStoreName(data.shopName);
         } else {
           router.push('/admin/login');
         }
@@ -158,7 +160,7 @@ export default function AdminLayout({
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Ivory Son
+                    {storeName}
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-1 mt-4 px-2">
@@ -183,12 +185,12 @@ export default function AdminLayout({
 
             <Link href="/admin" className="flex items-center gap-2">
               <Package className="h-6 w-6" />
-              <span className="font-bold text-lg hidden md:inline">Ivory Son</span>
+              <span className="font-bold text-lg hidden md:inline">{storeName}</span>
             </Link>
           </div>
 
           {/* Center title — mobile only */}
-          <span className="font-bold text-lg md:hidden absolute left-1/2 -translate-x-1/2">Ivory Son</span>
+          <span className="font-bold text-lg md:hidden absolute left-1/2 -translate-x-1/2">{storeName}</span>
 
           {/* Desktop navigation */}
           <nav className="hidden md:flex items-center gap-1">

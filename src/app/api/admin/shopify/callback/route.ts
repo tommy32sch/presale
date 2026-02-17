@@ -50,6 +50,20 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
+    // Fetch shop name from Shopify
+    let shopName: string | null = null;
+    try {
+      const shopRes = await fetch(`https://${storeDomain}/admin/api/2024-01/shop.json`, {
+        headers: { 'X-Shopify-Access-Token': accessToken },
+      });
+      if (shopRes.ok) {
+        const shopData = await shopRes.json();
+        shopName = shopData?.shop?.name || null;
+      }
+    } catch {
+      // Non-critical — continue without shop name
+    }
+
     // Store the access token in the database
     const supabase = db();
 
@@ -60,6 +74,7 @@ export async function GET(request: NextRequest) {
         id: 'default',
         store_domain: storeDomain,
         access_token: accessToken,
+        shop_name: shopName,
         connected_at: new Date().toISOString(),
       });
 
