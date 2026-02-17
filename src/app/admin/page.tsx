@@ -136,18 +136,22 @@ export default function AdminDashboardPage() {
           <Link href="/admin/orders" className="block group">
             <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-              <CardContent className="py-5 pl-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-muted-foreground">Total Orders</span>
+              <CardContent className="py-4 pl-5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">Total Orders</span>
                   <div className="h-9 w-9 rounded-xl bg-primary/10 dark:bg-primary/15 flex items-center justify-center shadow-sm ring-1 ring-primary/10">
                     <ShoppingCart className="h-4 w-4 text-primary" />
                   </div>
                 </div>
-                <div className="text-3xl font-bold tracking-tight">{stats?.totalOrders ?? 0}</div>
-                <div className="flex items-center justify-between mt-2">
+                {(stats?.newTodayTotal ?? 0) > 0 && (
+                  <p className="text-xs font-medium text-status-success">+{stats!.newTodayTotal} today</p>
+                )}
+                <div className="text-4xl font-bold tracking-tighter">{stats?.totalOrders ?? 0}</div>
+                <div className="flex items-center justify-between pt-1">
                   <p className="text-[11px] text-muted-foreground">All orders</p>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
+                <p className="text-[10px] text-muted-foreground/60">Updated just now</p>
               </CardContent>
             </Card>
           </Link>
@@ -155,18 +159,22 @@ export default function AdminDashboardPage() {
           <Link href="/admin/orders?status=active" className="block group">
             <Card className="rounded-2xl card-elevated transition-transform duration-200 cursor-pointer overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-status-info" />
-              <CardContent className="py-5 pl-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-muted-foreground">Active Orders</span>
+              <CardContent className="py-4 pl-5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">Active Orders</span>
                   <div className="h-9 w-9 rounded-xl bg-status-info/10 dark:bg-status-info/15 flex items-center justify-center shadow-sm ring-1 ring-status-info/10">
                     <Package className="h-4 w-4 text-status-info" />
                   </div>
                 </div>
-                <div className="text-3xl font-bold tracking-tight">{stats?.activeOrders ?? 0}</div>
-                <div className="flex items-center justify-between mt-2">
+                {(stats?.newTodayTotal ?? 0) > 0 && (
+                  <p className="text-xs font-medium text-status-info">+{stats!.newTodayTotal} today</p>
+                )}
+                <div className="text-4xl font-bold tracking-tighter">{stats?.activeOrders ?? 0}</div>
+                <div className="flex items-center justify-between pt-1">
                   <p className="text-[11px] text-muted-foreground">In production</p>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-status-info group-hover:translate-x-0.5 transition-all" />
                 </div>
+                <p className="text-[10px] text-muted-foreground/60">Updated just now</p>
               </CardContent>
             </Card>
           </Link>
@@ -211,12 +219,12 @@ export default function AdminDashboardPage() {
               </TooltipProvider>
 
               {/* Legend */}
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              <div className="flex flex-col gap-2">
                 {stats.stageDistribution.map((seg) => (
-                  <div key={seg.stageId} className="flex items-center gap-1.5">
-                    <span className={`h-2.5 w-2.5 rounded-full ${seg.color} shadow-sm ring-1 ring-black/5 dark:ring-white/10`} />
-                    <span className="text-[11px] text-muted-foreground">{seg.displayName}</span>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-semibold shadow-sm">
+                  <div key={seg.stageId} className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${seg.color} shadow-sm ring-1 ring-black/5 dark:ring-white/10`} />
+                    <span className="text-xs text-muted-foreground">{seg.displayName}</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold shadow-sm ml-auto">
                       {seg.count}
                     </Badge>
                   </div>

@@ -49,6 +49,15 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('is_cancelled', false);
 
+    // Get orders created today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count: newTodayTotal } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_cancelled', false)
+      .gte('created_at', todayStart.toISOString());
+
     // Get delayed orders count
     const { count: delayedOrders } = await supabase
       .from('orders')
@@ -226,6 +235,7 @@ export async function GET(request: NextRequest) {
         totalOrders: totalOrders || 0,
         activeOrders,
         delayedOrders: delayedOrders || 0,
+        newTodayTotal: newTodayTotal || 0,
         pendingNotifications: pendingNotifications || 0,
         unreadMessages: unreadMessages || 0,
         ordersByStage,

@@ -193,6 +193,7 @@ export interface DashboardStats {
   totalOrders: number;
   activeOrders: number;
   delayedOrders: number;
+  newTodayTotal: number;
   pendingNotifications: number;
   unreadMessages: number;
   ordersByStage: { stage: string; count: number }[];
