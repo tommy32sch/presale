@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/middleware';
 
 // Handle Shopify OAuth callback
 export async function GET(request: NextRequest) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://presale-tracker.vercel.app';
+
+  // Verify admin is authenticated (cookie present on Shopify redirect)
+  const auth = await requireAdmin(request);
+  if (!auth.authenticated) {
+    return NextResponse.redirect(`${appUrl}/admin/login?error=auth_required`);
+  }
+
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const shop = searchParams.get('shop');
 
   const storedState = request.cookies.get('shopify_oauth_state')?.value;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://presale-tracker.vercel.app';
 
   // Verify state to prevent CSRF
   if (!state || state !== storedState) {

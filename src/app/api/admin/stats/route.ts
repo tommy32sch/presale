@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 const STAGE_COLORS: Record<string, string> = {
   payment_received: 'bg-status-pending',
@@ -16,6 +17,15 @@ export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (!auth.authenticated) {
     return auth.response;
+  }
+
+  const clientIP = getClientIP(request.headers);
+  const rateLimit = await checkConfiguredRateLimit(`admin-stats:${clientIP}`, 'admin-stats', 60, '1 m');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
+    );
   }
 
   try {

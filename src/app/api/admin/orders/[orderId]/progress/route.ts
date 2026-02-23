@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
+import { isValidUUID, validateEnum, validateMaxLength, LIMITS } from '@/lib/utils/validation';
 
 
 export async function PATCH(
@@ -14,6 +15,9 @@ export async function PATCH(
 
   try {
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const body = await request.json();
     const {
       stage_id,
@@ -29,6 +33,18 @@ export async function PATCH(
         { success: false, error: 'stage_id and status are required' },
         { status: 400 }
       );
+    }
+
+    const statusError = validateEnum(status, ['not_started', 'in_progress', 'completed'] as const, 'status');
+    if (statusError) {
+      return NextResponse.json({ success: false, error: statusError }, { status: 400 });
+    }
+
+    if (admin_notes) {
+      const notesError = validateMaxLength(String(admin_notes), LIMITS.ADMIN_NOTES, 'admin_notes');
+      if (notesError) {
+        return NextResponse.json({ success: false, error: notesError }, { status: 400 });
+      }
     }
 
     const supabase = db();

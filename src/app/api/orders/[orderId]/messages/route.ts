@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIP } from '@/lib/utils/rate-limit';
+import { checkRateLimit, checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
+import { isValidUUID } from '@/lib/utils/validation';
 
 // Customer sends a message
 export async function POST(
@@ -20,6 +21,9 @@ export async function POST(
     }
 
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const body = await request.json();
     const { content } = body;
 
@@ -92,7 +96,19 @@ export async function GET(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    const clientIP = getClientIP(request.headers);
+    const rateLimit = await checkConfiguredRateLimit(`message-read:${clientIP}`, 'message-read', 30, '1 m');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please wait and try again.' },
+        { status: 429 }
+      );
+    }
+
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const supabase = db();
 
     const { data: messages, error } = await supabase

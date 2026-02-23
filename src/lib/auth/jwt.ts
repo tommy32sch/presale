@@ -1,12 +1,18 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'development-secret-key-change-in-production'
-);
+const jwtSecretRaw = process.env.JWT_SECRET;
+if (!jwtSecretRaw) {
+  throw new Error(
+    'JWT_SECRET environment variable is required. Generate one with: openssl rand -base64 32'
+  );
+}
+const JWT_SECRET = new TextEncoder().encode(jwtSecretRaw);
 
 const COOKIE_NAME = 'admin_token';
-const TOKEN_EXPIRY = '7d'; // 7 days
+const TOKEN_EXPIRY = '24h';
+const COOKIE_MAX_AGE = 60 * 60 * 24; // 24 hours
+const REFRESH_THRESHOLD_MS = 12 * 60 * 60 * 1000; // Refresh after 12 hours
 
 export interface JWTPayload {
   sub: string; // admin user id
@@ -58,7 +64,7 @@ export async function setAuthCookie(token: string): Promise<void> {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: COOKIE_MAX_AGE,
     path: '/',
   });
 }
@@ -78,6 +84,19 @@ export async function getAuthCookie(): Promise<string | null> {
 export async function clearAuthCookie(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+}
+
+/**
+ * Check if a token should be refreshed (older than 12 hours).
+ * Returns a new token string if refresh is needed, null otherwise.
+ */
+export async function refreshTokenIfNeeded(payload: JWTPayload): Promise<string | null> {
+  if (!payload.iat) return null;
+  const age = Date.now() - payload.iat * 1000;
+  if (age > REFRESH_THRESHOLD_MS) {
+    return createToken({ id: payload.sub, email: payload.email, name: payload.name });
+  }
+  return null;
 }
 
 /**

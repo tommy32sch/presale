@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
+import { isValidUUID } from '@/lib/utils/validation';
 
 export async function GET(
   request: NextRequest,
@@ -13,6 +14,9 @@ export async function GET(
 
   try {
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const supabase = db();
 
     // Fetch order with all related data
@@ -74,6 +78,9 @@ export async function PATCH(
 
   try {
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const body = await request.json();
     const supabase = db();
 
@@ -133,6 +140,9 @@ export async function DELETE(
 
   try {
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const supabase = db();
 
     // Delete order (cascades to order_progress, order_photos, notification_preferences, etc.)

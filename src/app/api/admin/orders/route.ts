@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
 import { normalizePhone } from '@/lib/utils/phone';
+import { escapePostgrestValue, validateMaxLength, LIMITS } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
@@ -35,7 +36,12 @@ export async function GET(request: NextRequest) {
 
     // Apply search filter
     if (search) {
-      query = query.or(`order_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_email.ilike.%${search}%`);
+      const lengthError = validateMaxLength(search, LIMITS.SEARCH_QUERY, 'search');
+      if (lengthError) {
+        return NextResponse.json({ success: false, error: lengthError }, { status: 400 });
+      }
+      const escaped = escapePostgrestValue(search);
+      query = query.or(`order_number.ilike.%${escaped}%,customer_name.ilike.%${escaped}%,customer_email.ilike.%${escaped}%`);
     }
 
     // Apply stage filter (orders whose current stage matches)
@@ -193,6 +199,22 @@ export async function POST(request: NextRequest) {
     if (!order_number || !customer_name || !customer_email || !customer_phone || !items_description) {
       return NextResponse.json(
         { success: false, error: 'All fields are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate field lengths
+    const lengthChecks = [
+      validateMaxLength(String(order_number), LIMITS.ORDER_NUMBER, 'order_number'),
+      validateMaxLength(String(customer_name), LIMITS.CUSTOMER_NAME, 'customer_name'),
+      validateMaxLength(String(customer_email), LIMITS.CUSTOMER_EMAIL, 'customer_email'),
+      validateMaxLength(String(customer_phone), LIMITS.CUSTOMER_PHONE, 'customer_phone'),
+      validateMaxLength(String(items_description), LIMITS.ITEMS_DESCRIPTION, 'items_description'),
+    ].filter(Boolean);
+
+    if (lengthChecks.length > 0) {
+      return NextResponse.json(
+        { success: false, error: lengthChecks[0] },
         { status: 400 }
       );
     }

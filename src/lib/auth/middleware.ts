@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from './jwt';
+import { verifyToken, refreshTokenIfNeeded, setAuthCookie } from './jwt';
 
 /**
  * Middleware helper to protect admin API routes
@@ -29,6 +29,16 @@ export async function requireAdmin(request: NextRequest) {
         { status: 401 }
       ),
     };
+  }
+
+  // Sliding window: refresh token if older than 12 hours
+  try {
+    const newToken = await refreshTokenIfNeeded(payload);
+    if (newToken) {
+      await setAuthCookie(newToken);
+    }
+  } catch {
+    // Non-critical — continue with existing token
   }
 
   return {

@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
 import { ActivityEvent } from '@/types';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (!auth.authenticated) {
     return auth.response;
+  }
+
+  const clientIP = getClientIP(request.headers);
+  const rateLimit = await checkConfiguredRateLimit(`admin-activity:${clientIP}`, 'admin-activity', 60, '1 m');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
+    );
   }
 
   try {

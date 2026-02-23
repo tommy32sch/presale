@@ -1,12 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
+import { isValidUUID } from '@/lib/utils/validation';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    const clientIP = getClientIP(request.headers);
+    const rateLimit = await checkConfiguredRateLimit(`notif-prefs:${clientIP}`, 'notif-prefs', 20, '1 m');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please wait and try again.' },
+        { status: 429 }
+      );
+    }
+
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const body = await request.json();
     const { sms_enabled, email_enabled } = body;
 
@@ -59,7 +73,19 @@ export async function GET(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    const clientIP = getClientIP(request.headers);
+    const rateLimit = await checkConfiguredRateLimit(`notif-prefs:${clientIP}`, 'notif-prefs', 20, '1 m');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please wait and try again.' },
+        { status: 429 }
+      );
+    }
+
     const { orderId } = await params;
+    if (!isValidUUID(orderId)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID format' }, { status: 400 });
+    }
     const supabase = db();
 
     const { data: prefs, error } = await supabase

@@ -6,7 +6,7 @@ import { checkRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting - stricter for login (3 attempts per minute)
+    // Rate limiting - stricter for login (5 attempts per minute)
     const clientIP = getClientIP(request.headers);
     const rateLimitResult = await checkRateLimit(`admin-login:${clientIP}`);
 

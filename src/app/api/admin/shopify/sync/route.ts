@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/middleware';
 import { normalizePhone } from '@/lib/utils/phone';
 import { normalizeEmail } from '@/lib/utils/email';
 import { refreshShopifyToken, verifyShopifyToken, updateStoredToken } from '@/lib/shopify/token';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 interface ShopifyOrder {
   id: number;
@@ -34,6 +35,15 @@ export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (!auth.authenticated) {
     return auth.response;
+  }
+
+  const clientIP = getClientIP(request.headers);
+  const rateLimit = await checkConfiguredRateLimit(`admin-shopify-sync:${clientIP}`, 'admin-shopify-sync', 5, '1 m');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
+    );
   }
 
   try {

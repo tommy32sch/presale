@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Carrier } from '@/types';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 interface TrackingEvent {
   date: string;
@@ -137,6 +138,15 @@ function getMockTrackingData(carrier: Carrier, trackingNumber: string): Tracking
 
 export async function GET(request: NextRequest) {
   try {
+    const clientIP = getClientIP(request.headers);
+    const rateLimit = await checkConfiguredRateLimit(`shipping-track:${clientIP}`, 'shipping-track', 30, '1 m');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please wait and try again.' },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const carrier = searchParams.get('carrier') as Carrier;
     const trackingNumber = searchParams.get('tracking_number');

@@ -4,11 +4,22 @@ import { requireAdmin } from '@/lib/auth/middleware';
 import { parseOrdersCSV, parseStageUpdatesCSV } from '@/lib/csv/parser';
 import { normalizePhone } from '@/lib/utils/phone';
 import { CSVImportResult } from '@/types';
+import { LIMITS } from '@/lib/utils/validation';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (!auth.authenticated) {
     return auth.response;
+  }
+
+  const clientIP = getClientIP(request.headers);
+  const rateLimit = await checkConfiguredRateLimit(`admin-upload:${clientIP}`, 'admin-upload', 10, '1 m');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
+    );
   }
 
   try {
@@ -19,6 +30,13 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { success: false, error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > LIMITS.CSV_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, error: 'File too large. Maximum size is 5MB.' },
         { status: 400 }
       );
     }

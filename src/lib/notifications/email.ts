@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { escapeHtml } from '@/lib/utils/validation';
 
 let resendClient: Resend | null = null;
 
@@ -97,7 +98,7 @@ function generateEmailHTML(body: string): string {
           <tr>
             <td style="padding: 32px 24px;">
               <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #27272a;">
-                ${body.replace(/\n/g, '<br>')}
+                ${escapeHtml(body).replace(/\n/g, '<br>')}
               </p>
             </td>
           </tr>

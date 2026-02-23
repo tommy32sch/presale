@@ -34,7 +34,14 @@ function verifyWebhook(body: string, hmacHeader: string): boolean {
     .update(body, 'utf8')
     .digest('base64');
 
-  return hash === hmacHeader;
+  const hashBuffer = Buffer.from(hash, 'utf8');
+  const hmacBuffer = Buffer.from(hmacHeader, 'utf8');
+
+  if (hashBuffer.length !== hmacBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(hashBuffer, hmacBuffer);
 }
 
 // Handle Shopify order webhooks

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
 import { StageStatus } from '@/types';
+import { validateEnum, LIMITS } from '@/lib/utils/validation';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 interface BulkProgressRequest {
   orderIds: string[];
@@ -22,6 +24,15 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
+  const clientIP = getClientIP(request.headers);
+  const rateLimit = await checkConfiguredRateLimit(`admin-bulk-progress:${clientIP}`, 'admin-bulk-progress', 20, '1 m');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const body: BulkProgressRequest = await request.json();
     const { orderIds, stage_id, status, queue_notification } = body;
@@ -38,6 +49,18 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'stage_id and status are required' },
         { status: 400 }
       );
+    }
+
+    if (orderIds.length > LIMITS.BULK_OPERATION_MAX) {
+      return NextResponse.json(
+        { success: false, error: `Maximum ${LIMITS.BULK_OPERATION_MAX} orders per bulk operation` },
+        { status: 400 }
+      );
+    }
+
+    const statusError = validateEnum(status, ['not_started', 'in_progress', 'completed'] as const, 'status');
+    if (statusError) {
+      return NextResponse.json({ success: false, error: statusError }, { status: 400 });
     }
 
     const supabase = db();

@@ -3,11 +3,21 @@ import { db } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/middleware';
 import { sendSMS } from '@/lib/notifications/sms';
 import { sendEmail } from '@/lib/notifications/email';
+import { checkConfiguredRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (!auth.authenticated) {
     return auth.response;
+  }
+
+  const clientIP = getClientIP(request.headers);
+  const rateLimit = await checkConfiguredRateLimit(`admin-notif-send:${clientIP}`, 'admin-notif-send', 10, '1 m');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
+    );
   }
 
   try {
